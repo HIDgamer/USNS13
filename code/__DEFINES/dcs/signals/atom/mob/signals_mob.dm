@@ -95,6 +95,9 @@
 #define COMSIG_ATTEMPT_MOB_PULL "attempt_mob_pull"
 	#define COMPONENT_CANCEL_MOB_PULL (1<<0)
 
+//from /mob/living/carbon/human/proc/handle_unhaul()
+#define COMSIG_MOB_UNHAULED "mob_unhauled"
+
 // Return non-zero value to override original behaviour
 #define COMSIG_MOB_SCREECH_ACT "mob_screech_act"
 	#define COMPONENT_SCREECH_ACT_CANCEL (1<<0)
