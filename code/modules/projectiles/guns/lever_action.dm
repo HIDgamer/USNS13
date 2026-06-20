@@ -508,9 +508,9 @@ their unique feature is that a direct hit will buff your damage and firerate
 	return empty_chamber(user)
 
 /obj/item/weapon/gun/lever_action/xm88/reset_hit_buff(mob/user, one_hand_lever)
+	SIGNAL_HANDLER
 	if(!(flags_gun_lever_action & USES_STREAKS))
 		return
-	// removed SIGNAL_HANDLER, if it breaks later on, sue me.
 	if(streak > 0)
 		to_chat(user, SPAN_WARNING("[src] beeps as it loses its targeting data, and returns to normal firing procedures."))
 	streak = 0
