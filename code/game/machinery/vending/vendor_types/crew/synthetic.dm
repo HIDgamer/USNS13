@@ -91,6 +91,8 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 		list("Synthetic Reset Key", 0, /obj/item/device/defibrillator/synthetic, MARINE_CAN_BUY_MRE, VENDOR_ITEM_MANDATORY),
 		list("Headset", 0, /obj/item/device/radio/headset/almayer/mcom/synth, MARINE_CAN_BUY_EAR, VENDOR_ITEM_MANDATORY),
 
+		list("SYNTHETIC SPECIALTY EQUIPMENT", 0, null, null, null),
+
 		list("UNIFORM (CHOOSE 1)", 0, null, null, null),
 		list("Uniform, Outdated Synth", 0, /obj/item/clothing/under/rank/synthetic/old, MARINE_CAN_BUY_UNIFORM, VENDOR_ITEM_REGULAR),
 		list("Uniform, Standard Synth", 0, /obj/item/clothing/under/rank/synthetic, MARINE_CAN_BUY_UNIFORM, VENDOR_ITEM_MANDATORY),
@@ -591,7 +593,7 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 /obj/structure/machinery/cm_vending/own_points/experimental_tools/redeem_token(obj/item/coin/marine/token, mob/user)
 	if(token.token_type == VEND_TOKEN_SYNTH)
 		if(user.drop_inv_item_to_loc(token, src))
-			available_points = 30
+			available_points = 50
 			available_points_to_display = available_points
 			to_chat(user, SPAN_NOTICE("You insert \the [token] into \the [src]."))
 			return TRUE
@@ -601,10 +603,26 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 	return GLOB.cm_vending_synth_tools
 
 GLOBAL_LIST_INIT(cm_vending_synth_tools, list(
-	list("Breaching Hammer", 15, /obj/item/weapon/twohanded/breacher/synth, null, VENDOR_ITEM_REGULAR),
-	list("Compact Defibrillator", 15, /obj/item/device/defibrillator/compact, null, VENDOR_ITEM_REGULAR),
-	list("Compact Nailgun kit", 15, /obj/effect/essentials_set/cnailgun, null, VENDOR_ITEM_REGULAR),
-	list("Telescopic Baton", 15, /obj/item/weapon/telebaton, null, VENDOR_ITEM_REGULAR),
+	list("PK-130", 0, null, null, null),
+	list("PK-130 SIMI Wrist-Mounted Computer", 25, /obj/item/clothing/gloves/synth, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Repair Mode", 15, /obj/item/device/simi_chip/repair, null, VENDOR_ITEM_RECOMMENDED),
+	list("PK-130 Protection Mode", 10, /obj/item/device/simi_chip/protect, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Anchor Mode", 5, /obj/item/device/simi_chip/anchor, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Motion Detector", 5, /obj/item/device/simi_chip/motion_detector, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Tactical Map", 5, /obj/item/device/simi_chip/tactical_map, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Rescue Hook", 10, /obj/item/device/simi_chip/rescue_hook, null, VENDOR_ITEM_REGULAR),
+
+	list("UTILITY & SELF DEFENSE TOOLS", 0, null, null, null),
+	list("Telescopic Baton", 25, /obj/item/weapon/telebaton, null, VENDOR_ITEM_REGULAR),
+
+	list("MEDICAL TOOLS", 0, null, null, null),
+	list("Compact Defibrillator", 25, /obj/item/device/defibrillator/compact, null, VENDOR_ITEM_REGULAR),
+
+	list("CONSTRUCTION TOOLS", 0, null, null, null),
+	list("Breaching Hammer", 25, /obj/item/weapon/twohanded/breacher/synth, null, VENDOR_ITEM_REGULAR),
+	list("Compact Nailgun kit", 25, /obj/effect/essentials_set/cnailgun, null, VENDOR_ITEM_REGULAR),
+
+	list("ACCESSORIES", 0, null, null, null),
 	list("Surgical Webbing Vest", 15, /obj/item/clothing/accessory/storage/surg_vest, MARINE_CAN_BUY_ACCESSORY, VENDOR_ITEM_REGULAR),
 	list("Surgical Webbing Vest (Blue)", 15, /obj/item/clothing/accessory/storage/surg_vest/blue, MARINE_CAN_BUY_ACCESSORY, VENDOR_ITEM_REGULAR),
 	list("Surgical Drop Pouch", 15, /obj/item/clothing/accessory/storage/surg_vest/drop_green, MARINE_CAN_BUY_ACCESSORY, VENDOR_ITEM_REGULAR),
