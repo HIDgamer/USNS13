@@ -14,14 +14,14 @@ import {
 } from 'tgui/components';
 
 import { clearChat, saveChatToDisk } from '../../chat/actions';
-import { THEMES } from '../../themes';
+import { CRT_THEMES, THEMES } from '../../themes';
 import { exportSettings, updateSettings } from '../actions';
 import { FONTS } from '../constants';
 import { selectSettings } from '../selectors';
 import { importChatSettings } from '../settingsImExport';
 
 export function SettingsGeneral(props) {
-  const { theme, fontFamily, fontSize, lineHeight } =
+  const { theme, colorPreset, fontFamily, fontSize, lineHeight } =
     useSelector(selectSettings);
   const dispatch = useDispatch();
   const [freeFont, setFreeFont] = useState(false);
@@ -44,6 +44,37 @@ export function SettingsGeneral(props) {
               }
             >
               {capitalize(THEME)}
+            </Button>
+          ))}
+        </LabeledList.Item>
+        <LabeledList.Item label="Color Preset">
+          <Button
+            selected={!colorPreset}
+            color="transparent"
+            onClick={() =>
+              dispatch(
+                updateSettings({
+                  colorPreset: null,
+                }),
+              )
+            }
+          >
+            None
+          </Button>
+          {Object.entries(CRT_THEMES).map(([key, config]) => (
+            <Button
+              key={key}
+              selected={colorPreset === key}
+              color="transparent"
+              onClick={() =>
+                dispatch(
+                  updateSettings({
+                    colorPreset: key,
+                  }),
+                )
+              }
+            >
+              {config.label}
             </Button>
           ))}
         </LabeledList.Item>

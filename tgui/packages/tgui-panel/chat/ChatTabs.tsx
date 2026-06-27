@@ -4,25 +4,18 @@
  * @license MIT
  */
 
+import { classes } from 'common/react';
 import { useDispatch, useSelector } from 'tgui/backend';
 import { Box, Button, Flex, Tabs } from 'tgui/components';
 
 import { openChatSettings } from '../settings/actions';
+import { selectSettings } from '../settings/selectors';
 import { addChatPage, changeChatPage } from './actions';
 import { selectChatPages, selectCurrentChatPage } from './selectors';
 import { Page } from './types';
 
 const UnreadCountWidget = ({ value }: { readonly value: number }) => (
-  <Box
-    style={{
-      fontSize: '0.7em',
-      borderRadius: '0.25em',
-      width: '1.7em',
-      lineHeight: '1.55em',
-      backgroundColor: 'crimson',
-      color: '#fff',
-    }}
-  >
+  <Box className="CrtChatTabs__unread">
     {Math.min(value, 99)}
   </Box>
 );
@@ -30,9 +23,14 @@ const UnreadCountWidget = ({ value }: { readonly value: number }) => (
 export const ChatTabs = (props) => {
   const pages = useSelector(selectChatPages);
   const currentPage = useSelector(selectCurrentChatPage);
+  const { colorPreset } = useSelector(selectSettings);
   const dispatch = useDispatch();
+  const isCrt = !!colorPreset;
   return (
-    <Flex align="center">
+    <Flex
+      align="center"
+      className={classes([isCrt && 'CrtChatTabs'])}
+    >
       <Flex.Item>
         <Tabs textAlign="center">
           {pages.map((page: Page) => (

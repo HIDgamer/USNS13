@@ -6,7 +6,7 @@
 
 import { storage } from 'common/storage';
 
-import { setClientTheme, THEMES } from '../themes';
+import { setClientTheme } from '../themes';
 import {
   addHighlightSetting,
   exportSettings,
@@ -82,6 +82,8 @@ function setStatTabsStyle(style: string) {
 
 export function settingsMiddleware(store) {
   let initialized = false;
+  // Apply dark immediately so BYOND window isn't white while storage loads asynchronously.
+  setClientTheme('dark', null);
 
   return (next) => (action) => {
     const { type, payload } = action;
@@ -109,27 +111,13 @@ export function settingsMiddleware(store) {
       return next(action);
     }
 
-    // Set client theme
-    const theme = payload?.theme;
-    if (theme) {
-      setClientTheme(theme);
-    } else if (type === loadSettings.type) {
-      store.dispatch(
-        updateSettings({
-          theme: THEMES[0],
-        }),
-      );
-      setClientTheme(THEMES[0]);
-    }
-
-    // Pass action to get an updated state
+    // Pass action first so state is fully updated (including migration)
     next(action);
 
     const settings = selectSettings(store.getState());
 
-    if (importSettings.type) {
-      setClientTheme(settings.theme);
-    }
+    // Apply client theme using the updated base + color preset
+    setClientTheme(settings.theme, settings.colorPreset);
 
     // Update stat panel settings
     // setStatTabsStyle(settings.statTabsStyle);

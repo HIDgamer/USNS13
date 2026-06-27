@@ -20,12 +20,34 @@ import { createDefaultHighlightSetting } from './model';
 
 const defaultHighlightSetting = createDefaultHighlightSetting();
 
+/**
+ * Migrate: old saves stored CRT themes in `theme` (e.g. 'crt-green').
+ * Split into base theme + colorPreset so dark/light base is independent.
+ * Old saves that lack the `colorPreset` key entirely (pre-split schema)
+ * defaulted to 'light', which wasn't an intentional choice, so reset those
+ * to 'dark' as well.
+ */
+function migrateTheme(nextState: any, payload: any) {
+  if (nextState.theme && nextState.theme.startsWith('crt-')) {
+    nextState.colorPreset = nextState.theme;
+    nextState.theme = 'dark';
+  }
+  if (!('colorPreset' in payload) && nextState.theme === 'light') {
+    nextState.theme = 'dark';
+    nextState.colorPreset = null;
+  }
+  if (nextState.theme !== 'dark' && nextState.theme !== 'light') {
+    nextState.theme = 'dark';
+  }
+}
+
 const initialState = {
   version: 1,
   fontSize: 13,
   fontFamily: FONTS[0],
   lineHeight: 1.2,
-  theme: 'light',
+  theme: 'dark', // base UI mode: 'dark' | 'light'
+  colorPreset: null, // CRT color overlay: null | 'crt-green' | 'crt-amber' | ...
   adminMusicVolume: 0.2,
   // Keep these two state vars for compatibility with other servers
   highlightText: '',
@@ -67,6 +89,7 @@ export function settingsReducer(
             ...payload,
           };
           nextState.initialized = true;
+          migrateTheme(nextState, payload ?? {});
           return nextState;
         }
 
@@ -76,6 +99,7 @@ export function settingsReducer(
           ...payload,
         };
         nextState.initialized = true;
+        migrateTheme(nextState, payload);
         // Lazy init the list for compatibility reasons
         if (!nextState.highlightSettings) {
           nextState.highlightSettings = [defaultHighlightSetting.id];
