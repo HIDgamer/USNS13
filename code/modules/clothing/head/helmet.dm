@@ -508,6 +508,7 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 			active_visor = null
 			toggle_visor(potential_user, temp_visor_holder, TRUE)
 	QDEL_NULL_LIST(built_in_visors)
+	QDEL_NULL_LIST(inserted_visors)
 	return ..()
 
 /obj/item/clothing/head/helmet/marine/attack_hand(mob/user)

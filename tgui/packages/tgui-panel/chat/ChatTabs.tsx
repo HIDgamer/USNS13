@@ -27,10 +27,7 @@ export const ChatTabs = (props) => {
   const dispatch = useDispatch();
   const isCrt = !!colorPreset;
   return (
-    <Flex
-      align="center"
-      className={classes([isCrt && 'CrtChatTabs'])}
-    >
+    <Flex align="center" className={classes([isCrt && 'CrtChatTabs'])}>
       <Flex.Item>
         <Tabs textAlign="center">
           {pages.map((page: Page) => (

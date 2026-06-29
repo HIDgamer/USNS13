@@ -343,6 +343,7 @@
 	if(A)
 		on = 0
 // A.update_lights()
+	light_emissive_overlay = null
 	. = ..()
 
 /obj/structure/machinery/light/proc/is_broken()

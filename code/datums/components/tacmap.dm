@@ -17,7 +17,7 @@
 	///Button for closing map
 	var/close_button
 	///Map holder
-	var/datum/tacmap_holder/map_holder
+	var/datum/tacmap_holder/component/map_holder
 	///Is drawing enabled
 	var/drawing
 
@@ -108,11 +108,7 @@
 
 GLOBAL_LIST_INIT(tacmap_holders, list())
 
-/datum/tacmap_holder
-	var/map_ref
-	var/atom/movable/screen/minimap/map
-
-/datum/tacmap_holder/New(loc, zlevel, flags, drawing)
+/datum/tacmap_holder/component/New(loc, zlevel, flags, drawing)
 	map_ref = "tacmap_[REF(src)]_map"
 	map = SSminimaps.fetch_minimap_object(zlevel, flags, TRUE, TRUE, TRUE, drawing=drawing)
 	map.screen_loc = "[map_ref]:1,1"
@@ -122,6 +118,6 @@ GLOBAL_LIST_INIT(tacmap_holders, list())
 	map.assigned_map = map_ref
 	map.appearance_flags = NONE
 
-/datum/tacmap_holder/Destroy()
+/datum/tacmap_holder/component/Destroy()
 	map = null
 	return ..()
