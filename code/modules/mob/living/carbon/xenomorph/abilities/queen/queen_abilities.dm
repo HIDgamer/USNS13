@@ -91,6 +91,7 @@
 	action_icon_state = "psychic_whisper"
 	plasma_cost = 0
 
+
 /datum/action/xeno_action/activable/secrete_resin/remote/queen
 	name = "Projected Resin (100)"
 	action_icon_state = "secrete_resin"
