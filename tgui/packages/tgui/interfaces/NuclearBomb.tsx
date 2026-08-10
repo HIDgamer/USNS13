@@ -1,35 +1,27 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import {
-  Button,
-  Dimmer,
-  Icon,
-  NoticeBox,
-  Section,
-  Stack,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { useBackend } from '../backend';
+import { Button, Dimmer, Icon, NoticeBox, Section, Stack } from '../components';
+import { Window } from '../layouts';
 
 type Data = {
-  anchor: BooleanLike;
-  safety: BooleanLike;
-  timing: number;
+  anchor: boolean;
+  safety: boolean;
+  timing: boolean;
   timeleft: string;
-  command_lockout: BooleanLike;
-  allowed: BooleanLike;
-  being_used: BooleanLike;
-  decryption_complete: BooleanLike;
-  decrypting: BooleanLike;
-  decryption_time: string;
-  can_disengage: BooleanLike;
+  command_lockout: boolean;
+  allowed: boolean;
+  being_used: boolean;
+  decryption_complete: boolean;
+  decrypting?: boolean;
+  decryption_time?: string;
 };
 
 export const NuclearBomb = () => {
   const { act, data } = useBackend<Data>();
 
-  const cantNuke = !data.anchor || !!data.safety || !data.decryption_complete;
+  const cantNuke =
+    !data.anchor || !!data.safety || !data.decryption_complete;
   const cantDecrypt = !data.anchor || data.decryption_complete;
-  const cantDisengage = !data.anchor || !data.can_disengage;
+
   return (
     <Window theme="retro" width={350} height={250}>
       <Window.Content scrollable>
@@ -136,7 +128,6 @@ export const NuclearBomb = () => {
                 <Button.Confirm
                   fluid
                   icon="power-off"
-                  disabled={cantDisengage}
                   onClick={() => act('toggleNuke')}
                 >
                   Deactivate nuke

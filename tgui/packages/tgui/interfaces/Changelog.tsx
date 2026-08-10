@@ -2,8 +2,9 @@ import { classes } from 'common/react';
 import dateformat from 'dateformat';
 import yaml from 'js-yaml';
 import { Component, Fragment } from 'react';
-import { resolveAsset } from 'tgui/assets';
-import { useBackend } from 'tgui/backend';
+
+import { resolveAsset } from '../assets';
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -13,10 +14,29 @@ import {
   Stack,
   Table,
   Tooltip,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-const changeTypes = {
+type Data = {
+  dates: string[];
+};
+
+type ChangeEntry = Record<string, string>;
+type AuthorChanges = Record<string, ChangeEntry[]>;
+type ChangelogData = Record<string, AuthorChanges>;
+
+type Props = Record<string, never>;
+
+type State = {
+  data: string | ChangelogData;
+  selectedDate: string;
+  selectedIndex: number;
+};
+
+const changeTypes: Record<
+  string,
+  { icon: string; color: string; desc: string }
+> = {
   bugfix: { icon: 'bug', color: 'green', desc: 'Fix' },
   fix: { icon: 'bug', color: 'green', desc: 'Fix' },
   wip: { icon: 'hammer', color: 'orange', desc: 'WIP' },
@@ -45,20 +65,10 @@ const changeTypes = {
   unknown: { icon: 'info-circle', color: 'label', desc: 'Unknown' },
 };
 
-type Data = { dates: string[] };
-
-export class Changelog extends Component<
-  {},
-  {
-    data:
-      | string
-      | { date: string; authors: { name: string; changes: string[] } };
-    selectedDate: string;
-    selectedIndex: number;
-  }
-> {
+export class Changelog extends Component<Props, State> {
   dateChoices: string[];
-  constructor(props) {
+
+  constructor(props: Props) {
     super(props);
     this.state = {
       data: 'Loading changelog data...',
@@ -68,20 +78,20 @@ export class Changelog extends Component<
     this.dateChoices = [];
   }
 
-  setData(data) {
+  setData(data: string | ChangelogData) {
     this.setState({ data });
   }
 
-  setSelectedDate(selectedDate) {
+  setSelectedDate(selectedDate: string) {
     this.setState({ selectedDate });
   }
 
-  setSelectedIndex(selectedIndex) {
+  setSelectedIndex(selectedIndex: number) {
     this.setState({ selectedIndex });
   }
 
-  getData = (date, attemptNumber = 1) => {
-    const { act } = useBackend();
+  getData = (date: string, attemptNumber = 1) => {
+    const { act } = useBackend<Data>();
     const self = this;
     const maxAttempts = 6;
 
@@ -105,7 +115,9 @@ export class Changelog extends Component<
           self.getData(date, attemptNumber + 1);
         }, timeout);
       } else {
-        self.setData(yaml.load(result, { schema: yaml.CORE_SCHEMA }));
+        self.setData(
+          yaml.load(result, { schema: yaml.CORE_SCHEMA }) as ChangelogData,
+        );
       }
     });
   };
@@ -296,7 +308,7 @@ export class Changelog extends Component<
                   <h4>{name} changed:</h4>
                   <Box ml={3}>
                     <Table>
-                      {(changes as string[]).map((change) => {
+                      {changes.map((change) => {
                         const changeKey = Object.keys(change)[0];
                         const changeType =
                           changeTypes[changeKey] || changeTypes['unknown'];

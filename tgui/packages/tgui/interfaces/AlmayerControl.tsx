@@ -27,6 +27,25 @@ type Data = {
   messages: { title: string; text: string; number: number }[] | null;
 };
 
+type Message = {
+  title: string;
+  text: string;
+  number: number;
+};
+
+type Data = {
+  worldtime: number;
+  messages: Message[] | null;
+  evac_status: number;
+  evac_eta?: number;
+  alert_level: number;
+  distresstimelock: number;
+  time_message: number;
+  time_request: number;
+  time_destruct: number;
+  time_central: number;
+};
+
 export const AlmayerControl = (_props) => {
   const { act, data } = useBackend<Data>();
 
@@ -258,7 +277,7 @@ export const AlmayerControl = (_props) => {
               <Flex>
                 {messages.map((entry) => {
                   return (
-                    <Flex.Item key={entry} grow>
+                    <Flex.Item key={entry.number} grow>
                       <Section
                         title={entry.title}
                         buttons={

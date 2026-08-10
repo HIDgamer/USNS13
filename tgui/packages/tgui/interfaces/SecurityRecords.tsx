@@ -1,6 +1,7 @@
-import type { BooleanLike } from 'common/react';
+import { BooleanLike } from 'common/react';
 import { useCallback, useEffect, useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -11,65 +12,100 @@ import {
   Modal,
   Section,
   Table,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type Comment = {
+  entry: string;
+  created_by: { name: string; rank: string };
+  created_at: string;
+  deleted_by: string | null;
+  deleted_at: string | null;
+};
 
 type RecordEntry = {
   id: string;
   general_name: string;
   general_rank: string;
-  general_age: number;
+  general_age: string;
   general_sex: string;
   general_m_stat: string;
   general_p_stat: string;
   security_criminal: string;
-  security_comments: {
-    entry: string;
-    created_by: { name: string; rank: string };
-    created_at: String;
-    deleted_by: null | string;
-    deleted_at: null | string;
-  }[];
+  security_comments: Record<string, Comment> | null;
   security_incident: string | null;
 };
 
-type Scanner = {
+type Fingerprint = {
+  name: string;
+  rank: string;
+  squad: string;
+  description: string;
+};
+
+type ScannerData = {
   connected: BooleanLike;
   count: number;
-  data: { name: string; squad: string; rank: string; description: string }[];
+  data: Fingerprint[];
 };
 
 type Data = {
-  scanner: Scanner;
   records: RecordEntry[];
+  scanner: ScannerData;
   fallback_image: string;
   photo_front?: string;
   photo_side?: string;
 };
 
+type SimpleFieldKey =
+  | 'general_name'
+  | 'id'
+  | 'general_rank'
+  | 'general_sex'
+  | 'general_age'
+  | 'general_p_stat'
+  | 'general_m_stat'
+  | 'security_criminal';
+
+type FieldDef = {
+  label: string;
+  contentKey: SimpleFieldKey;
+  isEditable: boolean;
+  type?: 'text' | 'number' | 'select';
+  options?: string[];
+};
+
+type SortConfig = {
+  key: SimpleFieldKey;
+  direction: 'asc' | 'desc';
+};
+
 export const SecurityRecords = () => {
   const { data, act } = useBackend<Data>();
-  const { records = [], scanner = {} as Scanner, fallback_image } = data;
-  const [recordsArray, setRecordsArray] = useState(
+  const { records = [], scanner = {} as ScannerData, fallback_image } = data;
+  const [recordsArray, setRecordsArray] = useState<RecordEntry[]>(
     Array.isArray(records) ? records : [],
   );
   const [selectedRecord, setSelectedRecord] = useState<RecordEntry | null>(
     null,
   );
-  const [editField, setEditField] = useState(null); // Field being edited
+  const [editField, setEditField] = useState<SimpleFieldKey | null>(null); // Field being edited
   const [editValue, setEditValue] = useState(''); // Value for input
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [viewFingerprintScanner, setViewFingerprintScanner] = useState(false); // Track fingerprint scanner view
-  const [sortConfig, setSortConfig] = useState({
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'general_name',
     direction: 'asc',
   });
   const [filterText, setFilterText] = useState('');
-  const [currentPhoto, setCurrentPhoto] = useState('front'); // State to track the current photo (front or side)
-  const [recordPhotos, setRecordPhotos] = useState({
-    front: '',
-    side: '',
+  const [currentPhoto, setCurrentPhoto] = useState<'front' | 'side'>('front'); // State to track the current photo (front or side)
+  const [recordPhotos, setRecordPhotos] = useState<{
+    front: string | null;
+    side: string | null;
+  }>({
+    front: null,
+    side: null,
   });
 
   // useEffect to sort on data update and on sort config change
@@ -113,8 +149,12 @@ export const SecurityRecords = () => {
     }
   }, [recordsArray, selectedRecord]);
 
-  const handleSave = (value) => {
-    act('update_field', { id: selectedRecord?.id, field: editField, value });
+  const handleSave = (value: string) => {
+    act('update_field', {
+      id: selectedRecord?.id,
+      field: editField,
+      value,
+    });
     closeEditModal();
   };
 
@@ -138,7 +178,7 @@ export const SecurityRecords = () => {
     });
   };
 
-  const handleSort = (key, keepDirection = false) => {
+  const handleSort = (key: SimpleFieldKey, keepDirection = false) => {
     const direction =
       keepDirection && sortConfig.key === key
         ? sortConfig.direction
@@ -157,7 +197,7 @@ export const SecurityRecords = () => {
 
   //* Functions for handling modals state
 
-  const openEditModal = (field, value) => {
+  const openEditModal = (field: SimpleFieldKey, value: string) => {
     setEditField(field);
     setEditValue(value);
   };
@@ -176,7 +216,7 @@ export const SecurityRecords = () => {
     setNewComment('');
   };
 
-  const personalDataFields = [
+  const personalDataFields: FieldDef[] = [
     {
       label: 'Name:',
       contentKey: 'general_name',
@@ -205,7 +245,7 @@ export const SecurityRecords = () => {
     },
   ];
 
-  const medicalDataFields = [
+  const medicalDataFields: FieldDef[] = [
     {
       label: 'Physical Status:',
       contentKey: 'general_p_stat',
@@ -218,16 +258,17 @@ export const SecurityRecords = () => {
     },
   ];
 
-  const criminalStatuses = {
-    '*Arrest*': { background: '#990c28', font: '#ffffff' },
-    Incarcerated: { background: '#faa20a', font: '#ffffff' },
-    Released: { background: '#2981b3', font: '#ffffff' },
-    Suspect: { background: '#686A6C', font: '#ffffff' },
-    NJP: { background: '#b60afa', font: '#ffffff' },
-    None: { background: 'inherit', font: 'inherit' },
-  };
+  const criminalStatuses: Record<string, { background: string; font: string }> =
+    {
+      '*Arrest*': { background: '#990c28', font: '#ffffff' },
+      Incarcerated: { background: '#faa20a', font: '#ffffff' },
+      Released: { background: '#2981b3', font: '#ffffff' },
+      Suspect: { background: '#686A6C', font: '#ffffff' },
+      NJP: { background: '#b60afa', font: '#ffffff' },
+      None: { background: 'inherit', font: 'inherit' },
+    };
 
-  const securityDataFields = [
+  const securityDataFields: FieldDef[] = [
     {
       label: 'Criminal Status:',
       contentKey: 'security_criminal',
@@ -238,17 +279,17 @@ export const SecurityRecords = () => {
   ];
 
   // Function to get styles based on status
-  const getStyle = (status) =>
+  const getStyle = (status: string) =>
     criminalStatuses[status] || { background: 'inherit', font: 'inherit' };
 
-  const getSortIndicator = (key) => {
+  const getSortIndicator = (key: SimpleFieldKey) => {
     if (sortConfig.key === key) {
       return sortConfig.direction === 'asc' ? '▼' : '▲';
     }
   };
 
   const selectRecord = useCallback(
-    (record) => {
+    (record: RecordEntry) => {
       act('select_record', { id: record.id });
       setSelectedRecord(record);
     },
@@ -259,7 +300,7 @@ export const SecurityRecords = () => {
     setSelectedRecord(null);
   }, []);
 
-  const renderField = (field, record) => {
+  const renderField = (field: FieldDef, record: RecordEntry) => {
     return (
       <Box
         key={field.contentKey}
@@ -403,9 +444,9 @@ export const SecurityRecords = () => {
               <Box style={{ textAlign: 'center', padding: '10px' }}>
                 <img
                   src={
-                    currentPhoto === 'front'
+                    (currentPhoto === 'front'
                       ? recordPhotos.front
-                      : recordPhotos.side
+                      : recordPhotos.side) ?? undefined
                   }
                   alt="Perp photo"
                   style={{
@@ -529,7 +570,9 @@ export const SecurityRecords = () => {
               className="SecurityRecords_BoxStyle"
               style={{ paddingLeft: '2px' }}
             >
-              <Button onClick={() => openCommentModal}>Add Comment</Button>
+              <Button onClick={() => setCommentModalOpen(true)}>
+                Add Comment
+              </Button>
             </Box>
           </>
         )}
@@ -560,7 +603,7 @@ export const SecurityRecords = () => {
   );
 
   const renderRecordsTable = () => (
-    <Section title="Security Records" fill scrollable>
+    <Section title="Security Records">
       <Flex direction="row" gap={2} mb={2}>
         <Button
           onClick={() => {
@@ -575,8 +618,8 @@ export const SecurityRecords = () => {
         <Input
           placeholder="Search records..."
           value={filterText}
-          onInput={(e, value) => setFilterText(value)}
-          style={{ flexGrow: '1' }}
+          onInput={(e) => setFilterText(e.target.value)}
+          style={{ flexGrow: 1 }}
         />
       </Flex>
       <Table>
@@ -660,7 +703,7 @@ export const SecurityRecords = () => {
             {currentField?.type === 'select' ? (
               <Dropdown
                 width="100%"
-                options={currentField.options!}
+                options={currentField.options || []}
                 selected={editValue}
                 onSelected={(value) => handleSave(value)}
               />
@@ -671,7 +714,7 @@ export const SecurityRecords = () => {
                 width="100%"
                 type={currentField?.type === 'number' ? 'number' : 'text'}
                 value={editValue}
-                onInput={(e, value) => setEditValue(value)}
+                onInput={(e) => setEditValue(e.target.value)}
                 onKeyDown={handleKeyDown}
               />
             )}
@@ -700,7 +743,7 @@ export const SecurityRecords = () => {
           <Input
             width="100%"
             value={newComment}
-            onInput={(e, value) => setNewComment(value)}
+            onInput={(e) => setNewComment(e.target.value)}
             placeholder="Enter your comment..."
           />
           <Flex justify="space-between" mt={2}>
@@ -720,7 +763,7 @@ export const SecurityRecords = () => {
 
   return (
     <Window theme="crtred" width={630} height={700}>
-      <Window.Content>
+      <Window.Content scrollable>
         {viewFingerprintScanner ? (
           renderFingerprintScannerView()
         ) : selectedRecord ? (

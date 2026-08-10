@@ -5,13 +5,19 @@ import { Window } from 'tgui/layouts';
 
 type Data = { pressure: number; mode: number; flush: BooleanLike };
 
+type Data = {
+  pressure: number;
+  mode: number;
+  flush: boolean;
+};
+
 export const Disposals = () => {
   const { act, data } = useBackend<Data>();
 
   const { pressure, mode, flush } = data;
 
   return (
-    <Window width={350} height={150}>
+    <Window width={350} height={200}>
       <Window.Content scrollable>
         <Section>
           <Button

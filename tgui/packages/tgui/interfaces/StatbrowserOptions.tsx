@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Flex, NumberInput, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { ReactNode, useState } from 'react';
 
-type Data = { current_fontsize: number };
+import { useBackend } from '../backend';
+import { Flex, NumberInput, Section } from '../components';
+import { Window } from '../layouts';
 
-export const StatbrowserOptions = (props) => {
+type Data = {
+  current_fontsize: number;
+};
+
+export const StatbrowserOptions = () => {
   const { act, data } = useBackend<Data>();
   const { current_fontsize } = data;
   const [fontsize, setFontsize] = useState(current_fontsize);
@@ -32,7 +35,7 @@ export const StatbrowserOptions = (props) => {
   );
 };
 
-const Options = (props: { readonly children: React.JSX.Element | string }) => {
+const Options = (props: { readonly children: ReactNode }) => {
   const { children } = props;
 
   return (
@@ -48,7 +51,7 @@ const Options = (props: { readonly children: React.JSX.Element | string }) => {
   );
 };
 
-const Option = (props) => {
+const Option = (props: { readonly category: ReactNode; readonly input: ReactNode }) => {
   const { category, input } = props;
 
   return (
@@ -59,7 +62,17 @@ const Option = (props) => {
   );
 };
 
-const NumberOption = (props) => {
+type NumberOptionProps = {
+  readonly category: ReactNode;
+  readonly value: number;
+  readonly minValue: number;
+  readonly maxValue: number;
+  readonly step: number;
+  readonly format: (value: number) => string;
+  readonly onChange: (value: number) => void;
+};
+
+const NumberOption = (props: NumberOptionProps) => {
   const { category, ...rest } = props;
 
   return <Option category={category} input={<NumberInput {...rest} />} />;

@@ -1,5 +1,6 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -9,17 +10,24 @@ import {
   NumberInput,
   ProgressBar,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type ProgramEntry = {
+  name: string;
+  amount: number;
+};
+
+type ProgramList = Record<string, ProgramEntry>;
 
 type Data = {
-  status: number;
   energy: number;
-  error: null | number | string;
+  status: number;
+  error: string | 0;
   multiplier: number;
   cycle_limit: number;
   automode: BooleanLike;
-  networked_storage: BooleanLike;
+  networked_storage?: BooleanLike;
   smartlink: BooleanLike;
   outputmode: number;
   buffervolume: number;
@@ -29,12 +37,8 @@ type Data = {
   output_maxvol: number | null;
   output_color: string | null;
   input_container: string | null;
-  memory:
-    | Record<number, Record<string, { name: string; amount?: number }>>
-    | string;
-  box:
-    | Record<number, Record<string, { name: string; amount?: number }>>
-    | string;
+  memory: ProgramList | 'Empty';
+  box: ProgramList | 'Empty';
 };
 
 export const Autodispenser = () => {
@@ -61,8 +65,7 @@ export const Autodispenser = () => {
   } = data;
 
   const energyPct = energy / 100;
-  const outputPct =
-    output_totalvol && output_maxvol ? output_totalvol / output_maxvol : 0;
+  const outputPct = (output_totalvol ?? 0) / (output_maxvol ?? 1);
 
   const memoryEmpty = memory === 'Empty';
   const boxEmpty = box === 'Empty';
@@ -306,10 +309,11 @@ export const Autodispenser = () => {
             <Section title="Memory Program">
               {(!memoryEmpty && (
                 <Flex direction="column">
-                  {Object.keys(memory).map((entry) => (
+                  {Object.keys(memory as ProgramList).map((entry) => (
                     <Flex.Item key={entry}>
                       <Box>
-                        {memory[entry]['name']}, {memory[entry]['amount']}u
+                        {(memory as ProgramList)[entry]['name']},{' '}
+                        {(memory as ProgramList)[entry]['amount']}u
                       </Box>
                     </Flex.Item>
                   ))}
@@ -319,10 +323,11 @@ export const Autodispenser = () => {
             <Section title="Box Program">
               {(!boxEmpty && (
                 <Flex direction="column">
-                  {Object.keys(box).map((entry) => (
+                  {Object.keys(box as ProgramList).map((entry) => (
                     <Flex.Item key={entry}>
                       <Box>
-                        {box[entry]['name']}, {box[entry]['amount']}u
+                        {(box as ProgramList)[entry]['name']},{' '}
+                        {(box as ProgramList)[entry]['amount']}u
                       </Box>
                     </Flex.Item>
                   ))}

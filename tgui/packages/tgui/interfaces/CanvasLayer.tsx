@@ -1,39 +1,37 @@
 import { Component, createRef, RefObject } from 'react';
-import { Box, Icon, Tooltip } from 'tgui/components';
+
+import { Box, Icon, Tooltip } from '../components';
+
+type Point = [number, number, number, number, string];
+
+type Props = {
+  readonly selection: string;
+  readonly actionQueueChange: number | string;
+  readonly imageSrc: string;
+  readonly onDraw: () => void;
+  readonly onUndo: (color: string) => void;
+  readonly onImageExport: (svgData: (number | string)[]) => void;
+};
+
+type State = {
+  selection: string;
+  mapLoad: boolean;
+};
 
 // this file should probably not be in interfaces, should move it later.
-type PaintCanvasProps = {
-  readonly onDraw: () => void;
-  readonly imageSrc: string;
-  readonly selection: string;
-  readonly onImageExport: (img) => void;
-  readonly onUndo: (e) => void;
-} & Partial<{
-  canvasRef: HTMLCanvasElement;
-  actionQueueChange: number;
-}>;
-
-type Line = [
-  number,
-  number,
-  number,
-  number,
-  string | CanvasGradient | CanvasPattern,
-];
-
-export class CanvasLayer extends Component<PaintCanvasProps> {
+export class CanvasLayer extends Component<Props, State> {
   canvasRef: RefObject<HTMLCanvasElement>;
   img: HTMLImageElement | null;
-  imageSrc?: string;
-  lineStack: Line[][];
-  currentLine: Line[];
+  imageSrc: string;
+  lineStack: Point[][];
+  currentLine: Point[];
   ctx: CanvasRenderingContext2D | null;
   isPainting: boolean;
   lastX: number | null;
   lastY: number | null;
   complexity: number;
-  state: { selection: string | undefined; mapLoad: boolean };
-  constructor(props) {
+
+  constructor(props: Props) {
     super(props);
     this.canvasRef = createRef();
 
@@ -64,42 +62,38 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
 
   componentDidMount() {
     this.ctx = this.canvasRef.current!.getContext('2d');
-    if (this.ctx) {
-      this.ctx.lineWidth = 4;
-      this.ctx.lineCap = 'round';
+    this.ctx!.lineWidth = 4;
+    this.ctx!.lineCap = 'round';
 
-      this.img = new Image();
+    this.img = new Image();
 
-      this.img.src = this.imageSrc || '';
+    this.img.src = this.imageSrc;
 
-      this.img.onload = () => {
-        this.setState({ mapLoad: true });
-      };
+    this.img.onload = () => {
+      this.setState({ mapLoad: true });
+    };
 
-      this.img.onerror = () => {
-        this.setState({ mapLoad: false });
-      };
+    this.img.onerror = () => {
+      this.setState({ mapLoad: false });
+    };
 
-      this.drawCanvas();
-    }
+    this.drawCanvas();
   }
-  handleMouseDown = (e) => {
-    if (!this.ctx) {
-      return;
-    }
+
+  handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     this.isPainting = true;
 
     const rect = this.canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.lastX || 0, this.lastY || 0);
+    this.ctx!.beginPath();
+    this.ctx!.moveTo(this.lastX ?? 0, this.lastY ?? 0);
     this.lastX = x;
     this.lastY = y;
   };
 
-  handleMouseMove = (e) => {
+  handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!this.isPainting || !this.state.selection) {
       return;
     }
@@ -109,10 +103,7 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
       return;
     }
 
-    if (!this.ctx) {
-      return;
-    }
-    this.ctx.strokeStyle = this.state.selection;
+    this.ctx!.strokeStyle = this.state.selection;
 
     const rect = this.canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -124,15 +115,15 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
         return;
       }
 
-      this.ctx.moveTo(this.lastX, this.lastY);
-      this.ctx.lineTo(x, y);
-      this.ctx.stroke();
+      this.ctx!.moveTo(this.lastX, this.lastY);
+      this.ctx!.lineTo(x, y);
+      this.ctx!.stroke();
       this.currentLine.push([
         this.lastX,
         this.lastY,
         x,
         y,
-        this.ctx.strokeStyle,
+        this.ctx!.strokeStyle as string,
       ]);
     }
 
@@ -140,7 +131,7 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
     this.lastY = y;
   };
 
-  handleMouseUp = (e) => {
+  handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (
       this.isPainting &&
       this.state.selection &&
@@ -151,18 +142,15 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      if (!this.ctx) {
-        return;
-      }
-      this.ctx.moveTo(this.lastX, this.lastY);
-      this.ctx.lineTo(x, y);
-      this.ctx.stroke();
+      this.ctx!.moveTo(this.lastX, this.lastY);
+      this.ctx!.lineTo(x, y);
+      this.ctx!.stroke();
       this.currentLine.push([
         this.lastX,
         this.lastY,
         x,
         y,
-        this.ctx.strokeStyle,
+        this.ctx!.strokeStyle as string,
       ]);
     }
 
@@ -182,21 +170,11 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
 
   handleSelectionChange = () => {
     const { selection } = this.props;
+    const canvas = this.canvasRef.current!;
 
-    if (selection === 'clear' && this.ctx) {
-      this.ctx.clearRect(
-        0,
-        0,
-        this.canvasRef.current?.width || 0,
-        this.canvasRef.current?.height || 0,
-      );
-      this.ctx.drawImage(
-        this.img as CanvasImageSource,
-        0,
-        0,
-        this.canvasRef.current?.width || 0,
-        this.canvasRef.current?.height || 0,
-      );
+    if (selection === 'clear') {
+      this.ctx!.clearRect(0, 0, canvas.width, canvas.height);
+      this.ctx!.drawImage(this.img!, 0, 0, canvas.width, canvas.height);
 
       this.lineStack = [];
       this.complexity = 0;
@@ -208,27 +186,16 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
         return;
       }
 
-      const line = this.lineStack.pop();
-      if (!line || line.length === 0 || !this.ctx) {
+      const line = this.lineStack.pop()!;
+      if (line.length === 0) {
         return;
       }
 
       const prevColor = line[0][4];
 
-      this.ctx.clearRect(
-        0,
-        0,
-        this.canvasRef.current?.width || 0,
-        this.canvasRef.current?.height || 0,
-      );
-      this.ctx.drawImage(
-        this.img!,
-        0,
-        0,
-        this.canvasRef.current?.width || 0,
-        this.canvasRef.current?.height || 0,
-      );
-      this.ctx.globalCompositeOperation = 'source-over';
+      this.ctx!.clearRect(0, 0, canvas.width, canvas.height);
+      this.ctx!.drawImage(this.img!, 0, 0, canvas.width, canvas.height);
+      this.ctx!.globalCompositeOperation = 'source-over';
 
       this.lineStack.forEach((currentLine) => {
         currentLine.forEach(([lastX, lastY, x, y, colorSelection]) => {
@@ -255,25 +222,23 @@ export class CanvasLayer extends Component<PaintCanvasProps> {
     this.setState({ selection: selection });
   };
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: Props) {
     if (prevProps.actionQueueChange !== this.props.actionQueueChange) {
       this.handleSelectionChange();
     }
   }
 
   drawCanvas() {
-    if (this.img) {
-      this.img.onload = () => {
-        // this onload may or may not be causing problems.
-        this.ctx?.drawImage(
-          this.img!,
-          0,
-          0,
-          this.canvasRef.current?.width || 0,
-          this.canvasRef.current?.height || 0,
-        );
-      };
-    }
+    this.img!.onload = () => {
+      // this onload may or may not be causing problems.
+      this.ctx!.drawImage(
+        this.img!,
+        0,
+        0,
+        this.canvasRef.current?.width ?? 0,
+        this.canvasRef.current?.height ?? 0,
+      );
+    };
   }
 
   convertToSVG() {

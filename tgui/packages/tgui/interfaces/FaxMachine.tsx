@@ -1,5 +1,6 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -8,13 +9,16 @@ import {
   NoticeBox,
   Section,
   Stack,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
 type Data = {
   department: string;
   network: string;
   machine_id_tag: string;
+  // NOTE: the backend assigns the raw ID-card/paper datum reference here
+  // (`data["idcard"] = scan`, `data["paper"] = original_fax`) rather than a
+  // name string like sibling machines do -- see report.
   idcard: string | null;
   paper: string | null;
   paper_name?: string;
@@ -33,7 +37,7 @@ type Data = {
 };
 
 export const FaxMachine = () => {
-  const { act, data } = useBackend<Data>();
+  const { data } = useBackend<Data>();
   const { idcard } = data;
   const body = idcard ? <FaxMain /> : <FaxEmpty />;
   const windowWidth = idcard ? 800 : 400;
@@ -46,7 +50,7 @@ export const FaxMachine = () => {
   );
 };
 
-const FaxMain = (props) => {
+const FaxMain = () => {
   const { data } = useBackend<Data>();
   const { machine_id_tag, awake_responder, highcom_dept } = data;
   return (
@@ -73,7 +77,7 @@ const FaxMain = (props) => {
   );
 };
 
-const FaxId = (props) => {
+const FaxId = () => {
   const { act, data } = useBackend<Data>();
   const { department, network, idcard, authenticated } = data;
   return (
@@ -104,7 +108,7 @@ const FaxId = (props) => {
   );
 };
 
-const FaxSelect = (props) => {
+const FaxSelect = () => {
   const { act, data } = useBackend<Data>();
   const {
     paper,
@@ -182,7 +186,7 @@ const FaxSelect = (props) => {
   );
 };
 
-const ConfirmSend = (props) => {
+const ConfirmSend = () => {
   const { act, data } = useBackend<Data>();
   const {
     paper,
@@ -243,14 +247,14 @@ const ConfirmSend = (props) => {
   );
 };
 
-const FaxEmpty = (props) => {
+const FaxEmpty = () => {
   const { act, data } = useBackend<Data>();
   const { paper, paper_name } = data;
   return (
     <Section textAlign="center" fill>
       <Flex height="100%">
         <Flex.Item grow="1" align="center" color="red">
-          <Icon name="times-circle" mb="0.5rem" size={5} color="red" />
+          <Icon name="times-circle" mb="0.5rem" size="5" color="red" />
           <br />
           No ID card detected.
           <br />

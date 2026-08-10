@@ -15,13 +15,31 @@ type Data = {
   }[];
 };
 
+type Recommendation = {
+  rank: string;
+  name: string;
+  ref: string;
+  recommender_name: string;
+  reason: string;
+  recommender_rank: string;
+};
+
+type Data = {
+  recommendations: Recommendation[];
+  // Allow-list of valid medal type strings, owned by GLOB.human_medals in
+  // code/datums/medal_awards.dm — the frontend doesn't duplicate the defines.
+  medal_types: string[];
+};
+
 export const IcMedalsPanel = (props) => {
   const { act, data } = useBackend<Data>();
 
-  const CONDUCT_MEDAL = 'distinguished conduct medal';
-  const BRONZE_HEART_MEDAL = 'bronze heart medal';
-  const VALOR_MEDAL = 'medal of valor';
-  const HEROISM_MEDAL = 'medal of exceptional heroism';
+  const [
+    CONDUCT_MEDAL = 'distinguished conduct medal',
+    BRONZE_HEART_MEDAL = 'bronze heart medal',
+    VALOR_MEDAL = 'medal of valor',
+    HEROISM_MEDAL = 'medal of exceptional heroism',
+  ] = data.medal_types ?? [];
 
   const [recommendationMedalTypes, setRecommendationMedalTypes] = useState<
     string[]

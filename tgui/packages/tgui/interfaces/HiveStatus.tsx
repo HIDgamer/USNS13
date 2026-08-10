@@ -1,8 +1,10 @@
-import { type BooleanLike, classes } from 'common/react';
+import { BooleanLike, classes } from 'common/react';
 import { createSearch } from 'common/string';
 import { Fragment, useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
+  Box,
   Button,
   Collapsible,
   Divider,
@@ -11,11 +13,68 @@ import {
   Input,
   NumberInput,
   Table,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-const redFont = {
-  color: 'red',
+type XenoKey = {
+  nicknumber: number;
+  tier: number;
+  is_leader: BooleanLike;
+  is_queen: BooleanLike;
+  caste_type: string;
+};
+
+type XenoInfo = {
+  name: string;
+  strain: string;
+  ref: string;
+};
+
+type XenoVitals = {
+  health: number;
+  area: string;
+  is_ssd: BooleanLike;
+};
+
+type TierSlot = {
+  open_slots: number;
+  guaranteed_slots: Record<string, number>;
+};
+
+type Data = {
+  total_xenos: number;
+  xeno_counts: Array<Record<string, number>>;
+  tier_slots: Record<string, TierSlot>;
+  xeno_keys: XenoKey[];
+  xeno_info: Record<string, XenoInfo>;
+  xeno_vitals: Record<string, XenoVitals>;
+  queen_location: string | null;
+  hive_location?: string;
+  burrowed_larva: number;
+  evilution_level: number;
+  pylon_status: string;
+  is_in_ovi: BooleanLike;
+  user_ref: string;
+  hive_color?: string;
+  hive_name: string;
+};
+
+type XenoEntry = {
+  nicknumber: string;
+  name: string;
+  strain: string;
+  location: string;
+  health: number;
+  ref: string;
+  is_ssd: BooleanLike;
+  is_leader: BooleanLike;
+  is_queen: BooleanLike;
+};
+
+type SearchFilters = {
+  name: boolean;
+  strain: boolean;
+  location: boolean;
 };
 
 /**
@@ -24,25 +83,19 @@ const redFont = {
  */
 const filterXenos = (data: {
   searchKey: string;
-  searchFilters: { name: boolean; strain: boolean; location: boolean };
+  searchFilters: SearchFilters;
   maxHealth: number;
   xeno_keys: XenoKey[];
-  xeno_vitals: XenoVitals[];
-  xeno_info: XenoInfo[];
+  xeno_vitals: Record<string, XenoVitals>;
+  xeno_info: Record<string, XenoInfo>;
 }) => {
-  const {
-    searchKey,
-    searchFilters,
-    maxHealth,
-    xeno_keys,
-    xeno_vitals,
-    xeno_info,
-  } = data;
+  const { searchKey, searchFilters, maxHealth, xeno_keys, xeno_vitals, xeno_info } =
+    data;
   const xeno_entries: XenoEntry[] = [];
 
   xeno_keys.map((key, i) => {
     const nicknumber = key.nicknumber.toString();
-    let entry = {
+    let entry: XenoEntry = {
       nicknumber: nicknumber,
       name: xeno_info[nicknumber].name,
       strain: xeno_info[nicknumber].strain,
@@ -70,11 +123,15 @@ const filterXenos = (data: {
  * Creates a filter function based on the search key (passed to the search bar),
  * the categories selected to be searched through, and the max health filter
  */
-const getFilter = (data) => {
+const getFilter = (data: {
+  searchKey: string;
+  searchFilters: SearchFilters;
+  maxHealth: number;
+}) => {
   const { searchKey, searchFilters, maxHealth } = data;
   const textSearch = createSearch(searchKey);
 
-  return (entry) => {
+  return (entry: XenoEntry) => {
     if (entry.health > maxHealth) {
       return false;
     }
@@ -93,48 +150,6 @@ const getFilter = (data) => {
   };
 };
 
-type XenoEntry = {
-  nicknumber: string;
-  name: string;
-  strain: string;
-  location: string | null;
-  health: number;
-  ref: string;
-  is_ssd: BooleanLike;
-  is_leader: BooleanLike;
-  is_queen: BooleanLike;
-};
-
-type XenoKey = {
-  nicknumber: number;
-  tier: string;
-  is_leader: BooleanLike;
-  is_queen: BooleanLike;
-  caste_type: string;
-};
-
-type TierSlot = { open_slots: string; guaranteed_slots: string };
-type XenoInfo = { name: string; straing: string; ref: string };
-type XenoVitals = { health: number; area: string; is_ssd: BooleanLike };
-
-type Data = {
-  total_xenos: number;
-  xeno_counts: Record<string, number>[];
-  tier_slots: { 3: TierSlot; 2: TierSlot };
-  xeno_keys: XenoKey[];
-  xeno_info: XenoInfo[];
-  xeno_vitals: XenoVitals[];
-  queen_location: string | null;
-  hive_location: string | null;
-  burrowed_larva: number;
-  evilution_level: number;
-  pylon_status: string;
-  is_in_ovi: BooleanLike;
-  user_ref: string;
-  hive_color: string;
-  hive_name: string;
-};
-
 export const HiveStatus = (props) => {
   const { data } = useBackend<Data>();
   const { hive_name } = data;
@@ -143,6 +158,7 @@ export const HiveStatus = (props) => {
     <Window
       title={hive_name + ' Status'}
       theme="hive_status"
+      resizable
       width={600}
       height={680}
     >
@@ -218,7 +234,7 @@ const XenoCounts = (props) => {
     <Flex direction="column-reverse">
       {xeno_counts.map((counts, tier) => {
         let tier_str = tier.toString();
-        let guaranteed_slots;
+        let guaranteed_slots: string[] | null = null;
         // Check if there are guaranteed slots available for a given tier
         if (tier_slots[tier_str]) {
           guaranteed_slots = Object.keys(tier_slots[tier_str].guaranteed_slots);
@@ -309,7 +325,7 @@ const XenoCounts = (props) => {
 const XenoList = (props) => {
   const { act, data } = useBackend<Data>();
   const [searchKey, setSearchKey] = useState('');
-  const [searchFilters, setSearchFilters] = useState({
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     name: true,
     strain: true,
     location: true,
@@ -428,7 +444,9 @@ const XenoList = (props) => {
             <Table.Cell>{entry.location}</Table.Cell>
             <Table.Cell>
               {entry.health < 30 ? (
-                <b style={redFont}>{entry.health}%</b>
+                <Box as="b" color="bad">
+                  {entry.health}%
+                </Box>
               ) : (
                 <>{entry.health}%</>
               )}
@@ -479,11 +497,13 @@ const StatusIcon = (props: { readonly entry: XenoEntry }) => {
       </div>
     );
   }
+
+  return null;
 };
 
 const XenoCollapsible = (props: {
   readonly title: string;
-  readonly children: React.JSX.Element | string;
+  readonly children: React.ReactNode;
 }) => {
   const { data } = useBackend<Data>();
   const { title, children } = props;
@@ -502,7 +522,7 @@ const XenoCollapsible = (props: {
 };
 
 const QueenOviButtons = (props: { readonly target_ref: string }) => {
-  const { act, data } = useBackend<Data>();
+  const { act } = useBackend<Data>();
   const { target_ref } = props;
 
   return (

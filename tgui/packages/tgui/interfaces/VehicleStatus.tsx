@@ -1,6 +1,6 @@
-import type { BooleanLike } from 'common/react';
 import { Fragment } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Collapsible,
@@ -9,26 +9,39 @@ import {
   NoticeBox,
   ProgressBar,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type Resistance = {
+  name: string;
+  pct: number;
+};
+
+type PassengerCategory = {
+  name: string;
+  taken: number;
+  total: number;
+};
+
+type Hardpoint = {
+  name: string;
+  health?: number | null;
+  uses_ammo: boolean;
+  current_rounds?: number;
+  max_rounds?: number;
+  mags?: number;
+  max_mags?: number;
+  fpw?: boolean;
+};
 
 type Data = {
-  resistance_data: { name: string; pct: number }[];
+  resistance_data: Resistance[];
   integrity: number;
-  door_locked: BooleanLike;
+  door_locked: boolean;
   total_passenger_slots: number;
   total_taken_slots: number;
-  passenger_categories_data: { name: string; taken: number; total: number }[];
-  hardpoint_data: {
-    name: String;
-    health: number | null;
-    uses_ammo: BooleanLike;
-    current_rounds?: number;
-    max_rounds?: number;
-    mags?: number;
-    max_mags?: number;
-    fpw: BooleanLike;
-  }[];
+  passenger_categories_data: PassengerCategory[];
+  hardpoint_data: Hardpoint[];
 };
 
 export const VehicleStatus = (props) => {
@@ -47,7 +60,7 @@ export const VehicleStatus = (props) => {
 
   return (
     <Window width={400} height={height}>
-      <Window.Content>
+      <Window.Content scrollable>
         <Section>
           {integrity >= 0 ? (
             <ProgressBar
@@ -64,11 +77,9 @@ export const VehicleStatus = (props) => {
             <NoticeBox danger>Hull destroyed!</NoticeBox>
           )}
           <Box height="5px" />
-          {door_locked ? (
-            <NoticeBox danger>Door locks: enabled.</NoticeBox>
-          ) : (
-            <NoticeBox info>Door locks: disabled.</NoticeBox>
-          )}
+          <NoticeBox info={door_locked ? 0 : 1} danger={door_locked ? 1 : 0}>
+            {door_locked ? 'Door locks: enabled.' : 'Door locks: disabled.'}
+          </NoticeBox>
           <Collapsible title="Current armour resistances">
             <ResistanceView />
           </Collapsible>
@@ -109,7 +120,7 @@ const HardpointsView = (props) => {
       {index !== 0 ? <Divider /> : null}
       <Box>{hardpoint.name}</Box>
       <Box width="3px" />
-      {hardpoint.fpw ? null : hardpoint.health! >= 0 ? (
+      {hardpoint.fpw ? null : hardpoint.health != null && hardpoint.health >= 0 ? (
         <ProgressBar
           value={hardpoint.health!}
           ranges={{

@@ -1,10 +1,9 @@
-import { Placement } from '@popperjs/core';
 import { toFixed } from 'common/math';
-import type { BooleanLike } from 'common/react';
 import { storage } from 'common/storage';
 import { createUuid } from 'common/uuid';
 import { Component, Fragment, useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -17,60 +16,64 @@ import {
   NumberInput,
   Section,
   Slider,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
 const pod_grey = {
   color: 'grey',
 };
 
+type DelaySet = {
+  drop_time: number;
+  dropping_time: number;
+  open_time: number;
+  return_time: number;
+};
+
+type TabIndexes = {
+  TAB_POD: number;
+  TAB_BAY: number;
+  TAB_DROPOFF: number;
+};
+
+type LaunchOptions = {
+  LAUNCH_ALL: number;
+  LAUNCH_RANDOM: number;
+};
+
+type TargetModes = {
+  TARGET_MODE_NONE: number;
+  TARGET_MODE_LAUNCH: number;
+  TARGET_MODE_DROPOFF: number;
+};
+
 type Data = {
-  glob_tab_indexes: {
-    TAB_POD: number;
-    TAB_BAY: number;
-    TAB_DROPOFF: number;
-  };
-  glob_launch_options: {
-    LAUNCH_ALL: number;
-    LAUNCH_RANDOM: number;
-  };
-  glob_target_mode: {
-    TARGET_MODE_NONE: number;
-    TARGET_MODE_LAUNCH: number;
-    TARGET_MODE_DROPOFF: number;
-  };
-  launch_clone: BooleanLike;
-  launch_random_item: BooleanLike;
+  glob_tab_indexes: TabIndexes;
+  glob_launch_options: LaunchOptions;
+  glob_target_mode: TargetModes;
+  launch_clone: boolean;
+  launch_random_item: boolean;
   launch_choice: number;
-  custom_dropoff: BooleanLike;
+  custom_dropoff: boolean;
   target_mode: number;
   old_area?: string;
   explosion_power: number;
   explosion_falloff: number;
-  gib_on_land: BooleanLike;
-  stealth: BooleanLike;
+  gib_on_land: boolean;
+  stealth: boolean;
   land_damage: number;
-  should_recall: BooleanLike;
-  delays: {
-    drop_time: number;
-    dropping_time: number;
-    open_time: number;
-    return_time: number;
-  };
-  reverse_delays: {
-    drop_time: number;
-    dropping_time: number;
-    open_time: number;
-  };
+  should_recall: boolean;
+  delays: DelaySet;
+  reverse_delays: Partial<DelaySet>;
   max_mob_size: number;
   max_hold_items: number;
-  can_be_opened: BooleanLike;
+  can_be_opened: boolean;
   map_ref: string;
 };
 
 export const PodLauncher = (props) => {
   return (
-    <Window title="Supply Pod Menu" width={730} height={500}>
+    <Window title="Supply Pod Menu" width={730} height={500} resizable>
       <PodLauncherContent />
     </Window>
   );
@@ -189,7 +192,16 @@ const reverse_delays = [
   },
 ];
 
-const EFFECTS_LOAD = [
+type EffectItem = {
+  title?: string;
+  icon?: string;
+  selected?: (data: Data) => boolean;
+  onClick?: () => void;
+  content?: string;
+  divider?: number;
+};
+
+const EFFECTS_LOAD: EffectItem[] = [
   {
     title: 'Launch All Turfs',
     icon: 'globe',
@@ -260,7 +272,7 @@ const EFFECTS_LOAD = [
   },
 ];
 
-const EFFECTS_NORMAL = [
+const EFFECTS_NORMAL: EffectItem[] = [
   {
     title: 'Gib',
     icon: 'skull-crossbones',
@@ -308,9 +320,14 @@ const EFFECTS_ALL = [
     label: 'General Effects',
     tooltipPosition: 'bottom',
   },
-];
+] as const;
 
-const ViewTabHolder = (props) => {
+type TabPageProps = {
+  readonly tabPageIndex: number;
+  readonly setTabPageIndex: (index: number) => void;
+};
+
+const ViewTabHolder = (props: TabPageProps) => {
   const { act, data } = useBackend<Data>();
   const { tabPageIndex, setTabPageIndex } = props;
   const { glob_tab_indexes, custom_dropoff, map_ref } = data;
@@ -469,7 +486,7 @@ const PodStatusPage = (props) => {
                       {!effect.divider && (
                         <Button
                           tooltip={effect.title}
-                          tooltipPosition={list.tooltipPosition as Placement}
+                          tooltipPosition={list.tooltipPosition}
                           icon={effect.icon}
                           selected={
                             effect.selected ? effect.selected(data) : false
@@ -502,7 +519,7 @@ const PodStatusPage = (props) => {
   );
 };
 
-const ReverseMenu = (props) => {
+const ReverseMenu = (props: TabPageProps) => {
   const { act, data } = useBackend<Data>();
   const { tabPageIndex, setTabPageIndex } = props;
   const { glob_tab_indexes, target_mode } = data;
@@ -549,17 +566,22 @@ const ReverseMenu = (props) => {
   );
 };
 
-type StateData = {
-  readonly presets: { id: string; title: string; hue: number }[];
-  readonly presetIndex: string | number;
-  readonly settingName: number;
-  readonly newNameText: string;
-  readonly hue: number;
+type Preset = {
+  id: string;
+  title: string;
+  hue: number;
 };
 
-class PresetsPage extends Component {
-  state: StateData;
-  constructor(props) {
+type PresetsPageState = {
+  presets: Preset[];
+  presetIndex: string | number;
+  settingName: number;
+  newNameText: string;
+  hue: number;
+};
+
+class PresetsPage extends Component<{}, PresetsPageState> {
+  constructor(props: {}) {
     super(props);
     this.state = {
       presets: [],
@@ -578,18 +600,18 @@ class PresetsPage extends Component {
     });
   }
 
-  saveDataToPreset(id, data) {
+  saveDataToPreset(id: string | number, data: unknown) {
     storage.set('cm_podlauncher_preset_' + id, data);
   }
 
-  async loadDataFromPreset(id) {
+  async loadDataFromPreset(id: string | number) {
     const { act } = useBackend<Data>();
     act('load_preset', {
       payload: await storage.get('cm_podlauncher_preset_' + id),
     });
   }
 
-  newPreset(presetName, hue, data) {
+  newPreset(presetName: string, hue: number, data: unknown) {
     let { presets } = this.state;
     if (!presets) {
       presets = [];
@@ -601,7 +623,7 @@ class PresetsPage extends Component {
     this.saveDataToPreset(id, data);
   }
 
-  async getPresets() {
+  async getPresets(): Promise<Preset[]> {
     let thing = await storage.get('cm_podlauncher_presetlist');
     if (thing === undefined) {
       thing = [];
@@ -609,7 +631,7 @@ class PresetsPage extends Component {
     return thing;
   }
 
-  deletePreset(deleteID) {
+  deletePreset(deleteID: string | number) {
     const { presets } = this.state;
     for (let i = 0; i < presets.length; i++) {
       if (presets[i].id === deleteID) {
@@ -622,7 +644,8 @@ class PresetsPage extends Component {
     });
   }
   render() {
-    const { presets, presetIndex, settingName, newNameText, hue } = this.state;
+    const { presets, presetIndex, settingName, newNameText, hue } =
+      this.state;
     const { act, data } = useBackend<Data>();
     return (
       <Section
@@ -691,6 +714,7 @@ class PresetsPage extends Component {
             />
             <span color="label"> Hue: </span>
             <NumberInput
+              inline
               animated
               width="40px"
               step={5}
@@ -702,11 +726,11 @@ class PresetsPage extends Component {
             />
             <Input
               inline
-              autoFocus
+              autofocus
               placeholder="Preset Name"
               onChange={(e, value) => this.setState({ newNameText: value })}
             />
-            <Divider />
+            <Divider horizontal />
           </>
         )}
         {(!presets || presets.length === 0) && (
@@ -805,7 +829,7 @@ const Timing = (props) => {
       <DelayHelper delay_list={DELAYS} title="Normal Timers" />
       {!!data.should_recall && (
         <>
-          <Divider />
+          <Divider horizontal />
           <DelayHelper
             delay_list={reverse_delays}
             reverse
@@ -817,7 +841,19 @@ const Timing = (props) => {
   );
 };
 
-const DelayHelper = (props) => {
+type DelayItem = {
+  title: string;
+  id: string;
+  tooltip: string;
+};
+
+type DelayHelperProps = {
+  readonly delay_list: DelayItem[];
+  readonly reverse?: boolean;
+  readonly title: string;
+};
+
+const DelayHelper = (props: DelayHelperProps) => {
   const { act, data } = useBackend<Data>();
   const { delay_list, reverse = false, title } = props;
   return (

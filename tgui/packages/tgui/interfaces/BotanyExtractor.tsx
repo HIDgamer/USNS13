@@ -1,5 +1,4 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -7,16 +6,21 @@ import {
   NoticeBox,
   Section,
   Stack,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type GeneMask = {
+  tag: string;
+  mask: string;
+};
 
 type Data = {
-  geneMasks: { tag: string; mask: string }[];
+  disk: string | false;
+  seed: string | false;
+  geneMasks: GeneMask[];
   degradation: number;
-  disk: string | null;
-  seed: string | BooleanLike;
-  hasGenetics: BooleanLike;
-  sourceName: string | BooleanLike;
+  hasGenetics: boolean;
+  sourceName: string | false;
 };
 
 export const BotanyExtractor = () => {

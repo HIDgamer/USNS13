@@ -1,9 +1,24 @@
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Button, Flex, Section, Stack, Tabs } from 'tgui/components';
-import { Window } from 'tgui/layouts';
 
-const PAGES = [
+import { useBackend } from '../backend';
+import { Button, Flex, Section, Stack, Tabs } from '../components';
+import { Window } from '../layouts';
+
+type Data = {
+  uscm_awards: Record<string, string[]>;
+  uscm_award_ckeys: Record<string, string>;
+  xeno_awards: Record<string, string[]>;
+  xeno_award_ckeys: Record<string, string>;
+};
+
+type Page = {
+  title: string;
+  color: string;
+  icon: string;
+  canAccess?: (data: Data) => boolean;
+};
+
+const PAGES: Page[] = [
   {
     title: 'USCM',
     color: 'blue',
@@ -16,13 +31,6 @@ const PAGES = [
   },
 ];
 
-type Data = {
-  uscm_awards: Record<string, string>;
-  xeno_awards: Record<string, string>;
-  uscm_award_ckeys: Record<string, string>;
-  xeno_award_ckeys: Record<string, string>;
-};
-
 export const MedalsPanel = (props) => {
   const { data } = useBackend<Data>();
   const { uscm_awards, uscm_award_ckeys, xeno_awards, xeno_award_ckeys } = data;
@@ -34,12 +42,17 @@ export const MedalsPanel = (props) => {
       width={600}
       height={400}
       theme={pageIndex === 0 ? 'ntos' : 'hive_status'}
+      resizable
     >
       <Window.Content scrollable>
         <Stack direction="column" fill>
           <Stack.Item basis="content" grow={0} pb={1}>
             <Tabs>
               {PAGES.map((page, i) => {
+                if (page.canAccess && !page.canAccess(data)) {
+                  return;
+                }
+
                 return (
                   <Tabs.Tab
                     key={i}
@@ -70,12 +83,14 @@ export const MedalsPanel = (props) => {
   );
 };
 
-const MedalsPage = (props: {
-  readonly awards: Record<string, string>;
+type MedalsPageProps = {
+  readonly awards: Record<string, string[]>;
   readonly ckeys: Record<string, string>;
   readonly isMarineMedal: boolean;
-}) => {
-  const { act } = useBackend();
+};
+
+const MedalsPage = (props: MedalsPageProps) => {
+  const { act } = useBackend<Data>();
   const { awards, ckeys, isMarineMedal } = props;
 
   return (

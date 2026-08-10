@@ -1,5 +1,4 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -8,26 +7,25 @@ import {
   ProgressBar,
   Section,
   Slider,
-} from 'tgui/components';
-import { formatPower } from 'tgui/format';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { formatPower } from '../format';
+import { Window } from '../layouts';
 
 // Common power multiplier
 const POWER_MUL = 1e3;
 
 type Data = {
-  capacity: number;
-
   capacityPercent: number;
+  capacity: number;
   charge: number;
-  inputAttempt: BooleanLike;
-  inputting: BooleanLike;
+  inputAttempt: boolean;
+  inputting: boolean;
   inputLevel: number;
   inputLevel_text: string;
   inputLevelMax: number;
   inputAvailable: number;
-  outputAttempt: BooleanLike;
-  outputting: BooleanLike;
+  outputAttempt: boolean;
+  outputting: boolean;
   outputLevel: number;
   outputLevel_text: string;
   outputLevelMax: number;
@@ -56,8 +54,8 @@ export const Smes = (props) => {
   const outputState =
     (outputting && 'good') || (charge > 0 && 'average') || 'bad';
   return (
-    <Window width={340} height={350}>
-      <Window.Content>
+    <Window width={340} height={390}>
+      <Window.Content scrollable>
         <Section title="Stored Energy">
           <ProgressBar
             value={capacityPercent * 0.01}

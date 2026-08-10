@@ -1,19 +1,30 @@
 import { capitalize } from 'common/string';
 import { Fragment } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Divider, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
 
-type Data = { languages: { name: string; desc: string; key: string }[] };
+import { useBackend } from '../backend';
+import { Box, Button, Divider, Section } from '../components';
+import { Window } from '../layouts';
+
+type Language = {
+  name: string;
+  desc: string;
+  key: string;
+};
+
+type Data = {
+  languages: Language[];
+};
 
 export const LanguageMenu = (props) => {
   const { act, data } = useBackend<Data>();
   const { languages } = data;
 
-  const height = 20 + languages.length * 95;
+  // Grows with the number of known languages, but caps out and scrolls
+  // instead of growing unboundedly for mobs that know many languages.
+  const height = Math.min(20 + languages.length * 95, 700);
 
   return (
-    <Window width={300} height={900}>
+    <Window width={300} height={height}>
       <Window.Content scrollable>
         <Section>
           <LanguagesView />

@@ -1,7 +1,8 @@
-import type { BooleanLike } from 'common/react';
+import { BooleanLike } from 'common/react';
 import { capitalize } from 'common/string';
 import { Fragment, useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -11,36 +12,40 @@ import {
   Section,
   Stack,
   Tabs,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
-import { createLogger } from 'tgui/logging';
-
+} from '../components';
+import { Window } from '../layouts';
+import { createLogger } from '../logging';
 import { ElectricalPanel } from './common/ElectricalPanel';
 
-type PrintData = {
+type QueuedItem = {
+  name: string;
+  multiplier: number;
+  index: number;
+};
+
+type CurrentlyMakingItem = {
+  name: string;
+  multiplier: number;
+};
+
+type PrintableItem = {
   name: string;
   index: number;
   can_make: BooleanLike;
-  materials: string | Record<string, string>;
+  materials: Record<string, string> | string;
   multipliers: Record<string, number> | null;
-  has_multipliers: number;
+  has_multipliers: BooleanLike;
   hidden: BooleanLike;
   recipe_category: string;
 };
 
 type Data = {
-  queued: { name: string; multiplier: number; index: number }[] | null;
-  currently_making: { name: string; multiplier: number } | null;
   materials: Record<string, number>;
-  printables: PrintData[];
-  electrical: {
-    electrified: BooleanLike;
-    panel_open: BooleanLike;
-    wires: { dec: string; cut: BooleanLike };
-    powered: BooleanLike;
-  };
-  selectable_categories: string[];
   capacity: Record<string, number>;
+  queued: QueuedItem[] | null;
+  currently_making: CurrentlyMakingItem | null;
+  printables: PrintableItem[];
+  selectable_categories: string[];
   queuemax: number;
   theme: string;
 };
@@ -48,20 +53,20 @@ type Data = {
 export const Autolathe = () => {
   const { data } = useBackend<Data>();
 
-  const { queued, theme } = data;
+  const { theme } = data;
 
   return (
     <Window width={600} height={600} theme={theme}>
       <Window.Content scrollable>
         <MaterialsData />
-        {queued && <QueueList />}
+        {data.queued && <QueueList />}
         <PrintablesSection />
       </Window.Content>
     </Window>
   );
 };
 
-const MaterialsData = (props) => {
+const MaterialsData = () => {
   const { data } = useBackend<Data>();
   const { materials, capacity, currently_making } = data;
 
@@ -87,17 +92,20 @@ const MaterialsData = (props) => {
   );
 };
 
-const CurrentlyMaking = (props) => {
+const CurrentlyMaking = () => {
   const { data } = useBackend<Data>();
   const { currently_making } = data;
 
-  const MakingName = currently_making
-    ? 'Currently making:' +
-      capitalize(currently_making.name) +
-      (currently_making.multiplier > 1
-        ? ' (x' + currently_making.multiplier + ')'
-        : '')
-    : '';
+  if (!currently_making) {
+    return null;
+  }
+
+  const MakingName =
+    'Currently making:' +
+    capitalize(currently_making.name) +
+    (currently_making.multiplier > 1
+      ? ' (x' + currently_making.multiplier + ')'
+      : '');
 
   return (
     <>
@@ -109,14 +117,14 @@ const CurrentlyMaking = (props) => {
   );
 };
 
-const QueueList = (props) => {
+const QueueList = () => {
   const { act, data } = useBackend<Data>();
   const { queued } = data;
 
   return (
     <Section title="Queue">
       <Flex direction="column">
-        {queued?.map((item, index) => (
+        {(queued ?? []).map((item, index) => (
           <Flex.Item key={index}>
             <Flex direction="row">
               <Flex.Item>
@@ -150,7 +158,7 @@ const QueueList = (props) => {
 };
 
 // the below all has to be in one section due to the categories and search params
-const PrintablesSection = (props) => {
+const PrintablesSection = () => {
   const { act, data } = useBackend<Data>();
 
   const logger = createLogger('autolathe');
@@ -200,71 +208,73 @@ const PrintablesSection = (props) => {
         </Stack.Item>
         <Stack.Item grow>
           <Flex direction="column">
-            {filteredPrintables.map((val, index) => (
-              <Flex.Item key={index}>
-                <Box>
-                  <Flex direction="row">
-                    <Flex.Item grow>
-                      <Button
-                        fluid
-                        disabled={!val.can_make}
-                        color={val.hidden ? 'red' : null}
-                        onClick={() =>
-                          act('make', {
-                            index: val.index,
-                            multiplier: 1,
-                          })
-                        }
-                      >
-                        {capitalize(val.name) +
-                          ' (' + // sorry for this shitcode, also yes this will break if an autolathe uses more than 2 material types
-                          (val.materials[Object.keys(materials)[0]] &&
-                          val.materials[Object.keys(materials)[1]]
-                            ? val.materials[Object.keys(materials)[0]] +
-                              ', ' +
-                              val.materials[Object.keys(materials)[1]]
-                            : val.materials[Object.keys(materials)[0]]
-                              ? val.materials[Object.keys(materials)[0]]
-                              : val.materials[Object.keys(materials)[1]]) +
-                          ') '}
-                      </Button>
-                    </Flex.Item>
+            {filteredPrintables.map((val, index) => {
+              const valMaterials = val.materials as Record<string, string>;
+              return (
+                <Flex.Item key={index}>
+                  <Box>
+                    <Flex direction="row">
+                      <Flex.Item grow>
+                        <Button
+                          fluid
+                          disabled={!val.can_make}
+                          color={val.hidden ? 'red' : null}
+                          onClick={() =>
+                            act('make', {
+                              index: val.index,
+                              multiplier: 1,
+                            })
+                          }
+                        >
+                          {capitalize(val.name) +
+                            ' (' + // sorry for this shitcode, also yes this will break if an autolathe uses more than 2 material types
+                            (valMaterials[Object.keys(materials)[0]] &&
+                            valMaterials[Object.keys(materials)[1]]
+                              ? valMaterials[Object.keys(materials)[0]] +
+                                ', ' +
+                                valMaterials[Object.keys(materials)[1]]
+                              : valMaterials[Object.keys(materials)[0]]
+                                ? valMaterials[Object.keys(materials)[0]]
+                                : valMaterials[Object.keys(materials)[1]]) +
+                            ') '}
+                        </Button>
+                      </Flex.Item>
 
-                    {(val.has_multipliers && (
-                      <>
-                        <Box width="2.5px" />
-                        <Flex.Item>
-                          <Flex direction="row">
-                            {!!val.multipliers &&
-                              Object.keys(val.multipliers).map(
-                                (entry, index) => (
-                                  <Fragment key={index}>
-                                    {index !== 0 ? <Box width="2.5px" /> : null}
-                                    <Flex.Item>
-                                      <Button
-                                        onClick={() =>
-                                          act('make', {
-                                            index: val.index,
-                                            multiplier: entry,
-                                          })
-                                        }
-                                      >
-                                        {'x' + entry}
-                                      </Button>
-                                    </Flex.Item>
-                                  </Fragment>
-                                ),
-                              )}
-                          </Flex>
-                        </Flex.Item>
-                      </>
-                    )) ||
-                      null}
-                  </Flex>
-                </Box>
-                <Box height="2.5px" />
-              </Flex.Item>
-            ))}
+                      {(val.has_multipliers && (
+                        <>
+                          <Box width="2.5px" />
+                          <Flex.Item>
+                            <Flex direction="row">
+                              {Object.keys(
+                                val.multipliers as Record<string, number>,
+                              ).map((entry, index) => (
+                                <Fragment key={index}>
+                                  {index !== 0 ? <Box width="2.5px" /> : null}
+                                  <Flex.Item>
+                                    <Button
+                                      onClick={() =>
+                                        act('make', {
+                                          index: val.index,
+                                          multiplier: entry,
+                                        })
+                                      }
+                                    >
+                                      {'x' + entry}
+                                    </Button>
+                                  </Flex.Item>
+                                </Fragment>
+                              ))}
+                            </Flex>
+                          </Flex.Item>
+                        </>
+                      )) ||
+                        null}
+                    </Flex>
+                  </Box>
+                  <Box height="2.5px" />
+                </Flex.Item>
+              );
+            })}
           </Flex>
           <Box height="10px" />
           <ElectricalPanel />

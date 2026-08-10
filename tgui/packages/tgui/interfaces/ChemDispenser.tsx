@@ -1,6 +1,6 @@
 import { toFixed } from 'common/math';
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   AnimatedNumber,
   Box,
@@ -9,21 +9,29 @@ import {
   NoticeBox,
   ProgressBar,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-import type { BeakerProps } from './common/BeakerContents';
+type Chemical = {
+  title: string;
+  id: string;
+};
+
+type BeakerContent = {
+  name: string;
+  volume: number;
+};
 
 type Data = {
   beakerTransferAmounts: number[];
   amount: number;
   energy: number;
   maxEnergy: number;
-  isBeakerLoaded: BooleanLike;
-  beakerContents: BeakerProps;
+  isBeakerLoaded: number;
+  beakerContents: BeakerContent[];
   beakerCurrentVolume: number | null;
   beakerMaxVolume: number | null;
-  chemicals: { title: string; id: string }[];
+  chemicals: Chemical[];
 };
 
 export const ChemDispenser = (props) => {
@@ -108,7 +116,7 @@ export const ChemDispenser = (props) => {
                 <>
                   <AnimatedNumber
                     initial={0}
-                    value={data.beakerCurrentVolume || 0}
+                    value={data.beakerCurrentVolume ?? 0}
                   />
                   /{data.beakerMaxVolume} units
                 </>

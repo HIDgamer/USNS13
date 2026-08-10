@@ -1,6 +1,6 @@
 import { toFixed } from 'common/math';
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Button,
   LabeledControls,
@@ -8,9 +8,20 @@ import {
   NumberInput,
   RoundGauge,
   Section,
-} from 'tgui/components';
-import { formatSiUnit } from 'tgui/format';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { formatSiUnit } from '../format';
+import { Window } from '../layouts';
+
+type Data = {
+  mask_connected: boolean;
+  tankPressure: number;
+  tankMaxPressure: number;
+  ReleasePressure: number;
+  minReleasePressure: number;
+  maxReleasePressure: number;
+  defaultReleasePressure: number;
+  valve_open: boolean;
+};
 
 const formatPressure = (value: number) => {
   if (value < 10000) {
@@ -19,23 +30,12 @@ const formatPressure = (value: number) => {
   return formatSiUnit(value * 1000, 1, 'Pa');
 };
 
-type Data = {
-  tankPressure: number;
-  tankMaxPressure: number;
-  ReleasePressure: number;
-  defaultReleasePressure: number;
-  maxReleasePressure: number;
-  minReleasePressure: number;
-  mask_connected: BooleanLike;
-  valve_open: BooleanLike;
-};
-
 export const Tank = (props) => {
   const { act, data } = useBackend<Data>();
 
   return (
-    <Window width={310} height={150}>
-      <Window.Content>
+    <Window width={310} height={230}>
+      <Window.Content scrollable>
         {(!!data.mask_connected && (
           <NoticeBox success>This tank is connected to a mask.</NoticeBox>
         )) || (
@@ -102,7 +102,7 @@ export const Tank = (props) => {
                 lineHeight={2}
                 fontSize="11px"
                 disabled={!data.mask_connected}
-                color={data.valve_open ? 'danger' : null}
+                color={data.valve_open ? 'bad' : null}
                 icon={data.valve_open ? 'lock-open' : 'lock'}
                 onClick={() => act('valve')}
               >

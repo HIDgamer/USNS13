@@ -1,18 +1,24 @@
 import { KEY_CTRL, KEY_SHIFT } from 'common/keycodes';
-import { ComponentProps, useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import {
-  Box,
-  Button,
-  Flex,
-  Input,
-  Section,
-  Slider,
-  Tabs,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { useState } from 'react';
 
-const PAGES = [
+import { useBackend } from '../backend';
+import { Box, Button, Flex, Input, Section, Slider, Tabs } from '../components';
+import { Window } from '../layouts';
+
+type Data = {
+  glob_vox_types: Record<string, Record<string, string>>;
+  factions: string[];
+};
+
+type Page = {
+  title: string;
+  component: () => (props) => JSX.Element;
+  color: string;
+  icon: string;
+  canAccess?: (data: Data) => boolean;
+};
+
+const PAGES: Page[] = [
   {
     title: 'Send VOX',
     component: () => SendVOX,
@@ -27,9 +33,9 @@ const PAGES = [
   },
 ];
 
-type Data = { glob_vox_types: string[]; factions: string[] };
-
 export const VoxPanel = (props) => {
+  const { data } = useBackend<Data>();
+
   const [pageIndex, setPageIndex] = useState(0);
 
   const PageComponent = PAGES[pageIndex].component();
@@ -39,6 +45,10 @@ export const VoxPanel = (props) => {
       <Window.Content scrollable>
         <Tabs>
           {PAGES.map((page, i) => {
+            if (page.canAccess && !page.canAccess(data)) {
+              return;
+            }
+
             return (
               <Tabs.Tab
                 key={i}
@@ -90,11 +100,8 @@ const SendVOX = (props) => {
       currentFaction[val] = true;
       setCurrentFaction({ ...currentFaction });
     } else if (keysDown[KEY_SHIFT]) {
-      let [startSelecting, foundClickedValue, finishedSelecting] = [
-        false,
-        false,
-        false,
-      ];
+      let [startSelecting, foundClickedValue, finishedSelecting] =
+        (false, false, false);
       const toSelect = factions.filter((value) => {
         if (finishedSelecting) return false;
 
@@ -134,9 +141,9 @@ const SendVOX = (props) => {
     }
   };
 
-  const [validWords, setValidWords] = useState([]);
+  const [validWords, setValidWords] = useState<string[]>([]);
 
-  const handleSetMessage = (msg, regex) => {
+  const handleSetMessage = (msg: string, regex?: RegExp) => {
     setMessage(msg);
 
     if (!regex) return;
@@ -207,6 +214,7 @@ const SendVOX = (props) => {
               stepPixelSize={20}
               minValue={0}
               maxValue={100}
+              fluid
             >
               Volume: {volume}
             </Slider>
@@ -262,7 +270,7 @@ const SoundList = (props) => {
   const { act, data } = useBackend<Data>();
   const { glob_vox_types } = data;
 
-  const [voxType, setVoxType] = useState('');
+  const [voxType, setVoxType] = useState<string | null>(null);
   const [currentSearch, setCurrentSearch] = useState('');
 
   return (
@@ -310,16 +318,16 @@ const SoundList = (props) => {
   );
 };
 
-export const ComboBox = (
-  props: {
-    readonly onSelected: (val: any, keysDown: any) => void;
-    readonly selected: string | Record<string, boolean>;
-    readonly buttons: string[];
-    readonly width?: number;
-    readonly height?: number;
-    readonly grow?: boolean;
-  } & ComponentProps<typeof Box>,
-) => {
+type ComboBoxProps = {
+  readonly onSelected: (val: string, keysDown: Record<number, boolean>) => void;
+  readonly selected: string | Record<string, boolean> | null;
+  readonly buttons: string[];
+  readonly width?: string | number;
+  readonly height?: string | number;
+  readonly grow?: boolean | number;
+};
+
+export const ComboBox = (props: ComboBoxProps) => {
   const {
     onSelected,
     selected,
@@ -330,16 +338,18 @@ export const ComboBox = (
     ...rest
   } = props;
 
-  const keysDown = {};
+  const keysDown: Record<number, boolean> = {};
   const handleCombos = (e) => {
     e.preventDefault();
     keysDown[e.keyCode] = e.type === 'keydown';
   };
 
-  const handleOnClick = (e, val) => {
+  const handleOnClick = (e, val: string) => {
     // Thanks to shift + click selecting everything,
     // this needs to be placed down.
-    if (window.getSelection) {
+    if ((document as any).selection && (document as any).selection.empty) {
+      (document as any).selection.empty();
+    } else if (window.getSelection) {
       const sel = window.getSelection();
       sel?.removeAllRanges();
     }
@@ -353,6 +363,7 @@ export const ComboBox = (
           <Section
             scrollable
             fill
+            level={2}
             tabIndex={0}
             onKeyDown={handleCombos}
             onKeyUp={handleCombos}

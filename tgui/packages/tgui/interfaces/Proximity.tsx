@@ -1,19 +1,21 @@
-import { useBackend } from 'tgui/backend';
-import { Button, Knob, LabeledList, Section, Slider } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
+import { Button, Knob, LabeledList, Section, Slider } from '../components';
+import { Window } from '../layouts';
 
 type Data = {
-  min_time: number;
   max_time: number;
-  min_range: number;
+  min_time: number;
   max_range: number;
-  min_delay: number;
+  min_range: number;
   max_delay: number;
+  min_delay: number;
+  is_arming: BooleanLike;
   current_arm_time: number;
-  is_arming: number;
-  current_delay: number;
   current_range: number;
-  armed: number;
+  current_delay: number;
+  armed: BooleanLike;
 };
 
 export const Proximity = (props) => {

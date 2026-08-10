@@ -1,3 +1,4 @@
+import { BooleanLike } from 'common/react';
 import { useMemo, useState } from 'react';
 
 import { useBackend } from '../backend';
@@ -12,15 +13,61 @@ import {
 } from '../components';
 import { Window } from '../layouts';
 
+type Recipe = {
+  type: 'recipe';
+  idx: number;
+  cat_id?: string;
+  title: string;
+  req_amount: number;
+  res_amount: number;
+  max_res_amount: number;
+  time: number;
+  on_floor: BooleanLike;
+  can_build: BooleanLike;
+  max_multiplier: number;
+  // Added client-side when flattened out of a collapsed category for search.
+  category_locked?: boolean;
+  category_title?: string;
+};
+
+type Category = {
+  type: 'category';
+  title: string;
+  req_amount: number;
+  can_enter: BooleanLike;
+  cat_id: string;
+  recipes: RecipeItem[];
+};
+
+type Separator = {
+  type: 'separator';
+};
+
+type RecipeItem = Recipe | Category | Separator;
+
+type Data = {
+  name: string;
+  amount: number;
+  singular: string;
+  recipes: RecipeItem[];
+};
+
 const TIME_PER_TICK = 0.1; // BYOND ticks to seconds
 
-const formatTime = (ticks) => {
+const formatTime = (ticks: number) => {
   if (!ticks) return null;
   const secs = (ticks * TIME_PER_TICK).toFixed(0);
   return `${secs}s`;
 };
 
-const RecipeCard = ({ recipe, stackSingular, act }) => {
+type RecipeCardProps = {
+  readonly recipe: Recipe;
+  readonly stackSingular: string;
+  readonly act: (action: string, payload?: object) => void;
+};
+
+const RecipeCard = (props: RecipeCardProps) => {
+  const { recipe, stackSingular, act } = props;
   const [qty, setQty] = useState(1);
   const maxQty =
     recipe.max_res_amount > 1
@@ -45,7 +92,7 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
           ? 'rgba(255,255,255,0.04)'
           : 'rgba(0,0,0,0.15)',
         borderLeft: `3px solid ${recipe.can_build ? '#4a8' : '#666'}`,
-        opacity: recipe.can_build ? 1 : 0.55,
+        opacity: recipe.can_build ? '1' : '0.55',
         transition: 'background-color 0.2s ease',
       }}
     >
@@ -55,12 +102,12 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
         style={{
           color: recipe.can_build ? '#8cf' : '#666',
           fontSize: '0.9rem',
-          flexShrink: 0,
+          flexShrink: '0',
         }}
       />
 
       {/* Title + metadata */}
-      <Box style={{ flex: 1, minWidth: 0 }}>
+      <Box style={{ flex: '1', minWidth: '0' }}>
         <Box
           style={{
             fontWeight: 'bold',
@@ -100,6 +147,12 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
               place on floor
             </span>
           ) : null}
+          {recipe.category_locked ? (
+            <span style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <Icon name="folder" style={{ marginRight: '2px' }} />
+              in collapsed category: {recipe.category_title}
+            </span>
+          ) : null}
         </Box>
       </Box>
 
@@ -110,7 +163,7 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '3px',
-            flexShrink: 0,
+            flexShrink: '0',
           }}
         >
           <NumberInput
@@ -138,11 +191,9 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
         disabled={!recipe.can_build}
         color={recipe.can_build ? 'green' : 'transparent'}
         tooltip={
-          !recipe.can_build
-            ? `Need ${recipe.req_amount} ${stackSingular}s`
-            : null
+          !recipe.can_build ? `Need ${recipe.req_amount} ${stackSingular}s` : ''
         }
-        style={{ flexShrink: 0, minWidth: '3.5rem' }}
+        style={{ flexShrink: '0', minWidth: '3.5rem' }}
         onClick={() =>
           act('make', {
             idx: recipe.idx,
@@ -157,8 +208,17 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
   );
 };
 
-const CategorySection = ({ category, stackSingular, act }) => {
+type CategorySectionProps = {
+  readonly category: Category;
+  readonly stackSingular: string;
+  readonly act: (action: string, payload?: object) => void;
+  readonly amount: number;
+};
+
+const CategorySection = (props: CategorySectionProps) => {
+  const { category, stackSingular, act, amount } = props;
   const [open, setOpen] = useState(true);
+  const missing = Math.max(0, category.req_amount - amount);
 
   return (
     <Box style={{ marginBottom: '4px' }}>
@@ -183,7 +243,7 @@ const CategorySection = ({ category, stackSingular, act }) => {
         }}
       >
         <Icon name={open ? 'chevron-down' : 'chevron-right'} />
-        <Box style={{ flex: 1, textAlign: 'left' }}>
+        <Box style={{ flex: '1', textAlign: 'left' }}>
           {category.title}
           <Box
             as="span"
@@ -196,6 +256,11 @@ const CategorySection = ({ category, stackSingular, act }) => {
           >
             ({category.req_amount} {stackSingular}
             {category.req_amount !== 1 ? 's' : ''} req.)
+            {!category.can_enter && missing > 0 ? (
+              <Box as="span" style={{ color: '#f84', marginLeft: '0.4rem' }}>
+                — need {missing} more
+              </Box>
+            ) : null}
           </Box>
         </Box>
         <Box
@@ -211,7 +276,7 @@ const CategorySection = ({ category, stackSingular, act }) => {
       {open && category.can_enter && (
         <Box style={{ paddingLeft: '0.8rem', paddingTop: '3px' }}>
           {(category.recipes || [])
-            .filter((r) => r.type === 'recipe')
+            .filter((r): r is Recipe => r.type === 'recipe')
             .map((r, i) => (
               <RecipeCard
                 key={i}
@@ -227,20 +292,33 @@ const CategorySection = ({ category, stackSingular, act }) => {
 };
 
 export const ConstructionMenu = () => {
-  const { act, data } = useBackend();
+  const { act, data } = useBackend<Data>();
   const { name, amount, singular, recipes = [] } = data;
   const [search, setSearch] = useState('');
 
   const q = search.toLowerCase().trim();
 
-  // Flatten all recipes for search; otherwise use original structure
+  // Flatten all recipes for search; otherwise use original structure.
+  // Recipes from a collapsed (can_enter: false) category keep a reference
+  // to that so search results can explain why they weren't visible in the
+  // structured view, instead of looking identical to any other recipe —
+  // the category gate doesn't actually block building, only browsing.
   const flatRecipes = useMemo(() => {
-    const out = [];
-    const flatten = (list) => {
+    const out: Recipe[] = [];
+    const flatten = (list: RecipeItem[], parentCategory?: Category) => {
       for (const item of list) {
-        if (item.type === 'recipe') out.push(item);
-        else if (item.type === 'category' && item.recipes) {
-          flatten(item.recipes);
+        if (item.type === 'recipe') {
+          out.push(
+            parentCategory && !parentCategory.can_enter
+              ? {
+                  ...item,
+                  category_locked: true,
+                  category_title: parentCategory.title,
+                }
+              : item,
+          );
+        } else if (item.type === 'category' && item.recipes) {
+          flatten(item.recipes, item);
         }
       }
     };
@@ -333,7 +411,7 @@ export const ConstructionMenu = () => {
                     No recipes match &ldquo;{search}&rdquo;
                   </Box>
                 ) : (
-                  visibleItems.map((r, i) => (
+                  (visibleItems as Recipe[]).map((r, i) => (
                     <RecipeCard
                       key={i}
                       recipe={r}
@@ -364,6 +442,7 @@ export const ConstructionMenu = () => {
                         category={item}
                         stackSingular={singular}
                         act={act}
+                        amount={amount}
                       />
                     );
                   }

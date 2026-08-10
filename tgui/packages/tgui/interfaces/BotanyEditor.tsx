@@ -1,20 +1,13 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import {
-  Button,
-  LabeledList,
-  NoticeBox,
-  Section,
-  Stack,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { useBackend } from '../backend';
+import { Button, LabeledList, NoticeBox, Section, Stack } from '../components';
+import { Window } from '../layouts';
 
 type Data = {
-  disk: string | null;
-  sourceName: string | BooleanLike;
-  locus: string[] | BooleanLike;
-  seed: string | BooleanLike;
-  degradation: number;
+  disk: string | false;
+  seed: string | false;
+  degradation: number | false;
+  sourceName: string | false;
+  locus: string[] | false;
 };
 
 export const BotanyEditor = () => {
@@ -22,7 +15,7 @@ export const BotanyEditor = () => {
 
   const { disk, seed, degradation, sourceName, locus } = data;
 
-  const degraded = degradation >= 100;
+  const degraded = Number(degradation) >= 100;
 
   return (
     <Window width={400} height={450} theme="weyland">

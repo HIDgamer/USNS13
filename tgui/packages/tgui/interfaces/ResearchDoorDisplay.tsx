@@ -1,11 +1,12 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import { Button, Flex, NoticeBox, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
+import { Button, Flex, NoticeBox, Section } from '../components';
+import { Window } from '../layouts';
 
 type Data = {
-  has_divider: BooleanLike;
   door_id: string;
+  has_divider: BooleanLike;
   has_flash: BooleanLike;
   open_door: BooleanLike;
   open_shutter: BooleanLike;

@@ -1,5 +1,6 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -8,32 +9,34 @@ import {
   NoticeBox,
   ProgressBar,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-type Recipe = { recipe_id: string; name: string; time: number; metal: number };
+type Recipe = {
+  recipe_id: string;
+  name: string;
+  time: number;
+  metal: number;
+};
 
 type Data = {
-  recipes: Recipe[];
-  metal_max: number;
   working: BooleanLike;
   metal_amt: number;
-  printtime: number;
+  metal_max: number;
+  printtime: number | null;
   worldtime: number;
   printingitem?: string;
   printingitemtime?: number;
+  recipes: Recipe[];
 };
 
 export const BioSyntheticPrinter = () => {
   const { act, data } = useBackend<Data>();
 
-  const { printingitemtime } = data;
-
   const Working = data.working;
 
-  const PrintingPct = printingitemtime
-    ? 1 - (data.printtime - data.worldtime) / printingitemtime
-    : 0;
+  const PrintingPct =
+    1 - ((data.printtime ?? 0) - data.worldtime) / (data.printingitemtime ?? 1);
 
   const recipes = data.recipes;
 
@@ -57,7 +60,7 @@ export const BioSyntheticPrinter = () => {
             </Box>
           </ProgressBar>
         </Section>
-        <Section title="Limbs" fill>
+        <Section title="Limbs" grow>
           {!!Working && (
             <Box>
               <NoticeBox>Currently printing : {data.printingitem}</NoticeBox>
@@ -66,12 +69,17 @@ export const BioSyntheticPrinter = () => {
             </Box>
           )}
 
-          <LabeledList>
+          <LabeledList vertical>
             {recipes.map((val) => {
               return (
                 <LabeledList.Item
                   key={val.recipe_id}
                   label={val.name}
+                  onFocus={() =>
+                    document.activeElement
+                      ? (document.activeElement as HTMLElement).blur()
+                      : false
+                  }
                   buttons={
                     <Button
                       color="good"

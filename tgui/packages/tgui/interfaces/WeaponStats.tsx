@@ -1,41 +1,12 @@
 import { map } from 'common/collections';
-import { type BooleanLike, classes } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import {
-  Box,
-  Divider,
-  Flex,
-  ProgressBar,
-  Section,
-  Table,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike, classes } from 'common/react';
 
-const GreedRedRange: Record<string, [number, number]> = {
-  good: [-Infinity, 0.25],
-  average: [0.25, 0.5],
-  bad: [0.5, Infinity],
-};
-
-const RedGreenRange: Record<string, [number, number]> = {
-  bad: [-Infinity, 0.25],
-  average: [0.25, 0.5],
-  good: [0.5, Infinity],
-};
+import { useBackend } from '../backend';
+import { Box, Divider, Flex, ProgressBar, Section, Table } from '../components';
+import { Window } from '../layouts';
 
 type Data = {
-  recoil_max: number;
-  scatter_max: number;
-  firerate_max: number;
-  damage_max: number;
-  accuracy_max: number;
-  range_max: number;
-  effective_range_max: number;
-  falloff_max: number;
-  penetration_max: number;
-  punch_max: number;
-  automatic: BooleanLike;
-  auto_only: BooleanLike;
+  // weapon info
   icon: string;
   name: string;
   desc: string;
@@ -50,6 +21,10 @@ type Data = {
   unwielded_scatter: number;
   burst_scatter: number;
   burst_amount: number;
+  automatic: BooleanLike;
+  auto_only: BooleanLike;
+
+  // ammo info
   has_ammo: BooleanLike;
   ammo_name: string;
   damage: number;
@@ -63,9 +38,41 @@ type Data = {
   projectile_max_range_add: number;
   effective_range_max_mod: number;
   effective_range: number;
+
+  // damage table data
   damage_armor_profile_headers: number[];
   damage_armor_profile_marine: number[];
   damage_armor_profile_xeno: number[];
+
+  // static (consts / maxes)
+  recoil_max: number;
+  scatter_max: number;
+  firerate_max: number;
+  damage_max: number;
+  accuracy_max: number;
+  range_max: number;
+  effective_range_max: number;
+  falloff_max: number;
+  penetration_max: number;
+  /**
+   * Unused by the frontend: gun.dm's ui_static_data() sends this max but
+   * never sends a matching "punch" value in ui_data(), so there is no
+   * numerator to pair it with for a progress bar. Nothing to render until
+   * the backend actually sends melee/punch damage for the gun.
+   */
+  punch_max: number;
+};
+
+const GreedRedRange: Record<string, [number, number]> = {
+  good: [-Infinity, 0.25],
+  average: [0.25, 0.5],
+  bad: [0.5, Infinity],
+};
+
+const RedGreenRange: Record<string, [number, number]> = {
+  bad: [-Infinity, 0.25],
+  average: [0.25, 0.5],
+  good: [0.5, Infinity],
 };
 
 export const WeaponStats = (props) => {
@@ -73,8 +80,8 @@ export const WeaponStats = (props) => {
   const { has_ammo } = data;
 
   return (
-    <Window width={has_ammo ? 600 : 300} height={has_ammo ? 600 : 500}>
-      <Window.Content>
+    <Window width={has_ammo ? 600 : 300} height={has_ammo ? 650 : 520}>
+      <Window.Content scrollable>
         <GeneralInfo />
         {has_ammo ? (
           <>
@@ -99,7 +106,8 @@ export const WeaponStats = (props) => {
 
 const GeneralInfo = (props) => {
   const { data } = useBackend<Data>();
-  const { name, desc, automatic, burst_amount, auto_only, icon } = data;
+  const { name, desc, automatic, burst_amount, two_handed_only, auto_only, icon } =
+    data;
   return (
     <Section>
       <Flex direction="column">
@@ -259,10 +267,15 @@ const Firerate = (props) => {
 
 const AmmoInfo = (props) => {
   const { data } = useBackend<Data>();
-  const { ammo_name } = data;
+  const { ammo_name, total_projectile_amount } = data;
   return (
     <Section title="Ammo Info">
       <Box textAlign="center">Loaded ammo: {ammo_name}</Box>
+      {total_projectile_amount > 1 && (
+        <Box textAlign="center">
+          Projectiles per shot: {total_projectile_amount}
+        </Box>
+      )}
       <Box height="5px" />
       <Damage />
       <Accuracy />

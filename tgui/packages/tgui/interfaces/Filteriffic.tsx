@@ -1,8 +1,9 @@
 import { map } from 'common/collections';
 import { toFixed } from 'common/math';
-import { numberOfDecimalDigits } from 'common/math';
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { numberOfDecimalDigits } from '../../common/math';
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -14,145 +15,29 @@ import {
   NoticeBox,
   NumberInput,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-type MasterFilter = {
-  alpha: {
-    defaults: {
-      x: number;
-      y: number;
-      icon: string;
-      render_source: string;
-      flags: number;
-    };
-    flags: {
-      MASK_INVERSE: number;
-      MASK_SWAP: number;
-    };
-
-    angular_blur: {
-      defaults: {
-        x: number;
-        y: number;
-        size: number;
-      };
-    };
-    displace: {
-      defaults: {
-        x: number;
-        y: number;
-        size: null | number;
-        icon: string;
-        render_source: '';
-      };
-    };
-    drop_shadow: {
-      defaults: {
-        x: number;
-        y: number;
-        size: number;
-        offset: number;
-        color: string;
-      };
-    };
-    blur: {
-      defaults: {
-        size: number;
-      };
-    };
-    layer: {
-      defaults: {
-        x: number;
-        y: number;
-        icon: string;
-        render_source: string;
-        flags: number;
-        color: string;
-        transform: null | number;
-        blend_mode: number;
-      };
-    };
-    motion_blur: {
-      defaults: {
-        x: number;
-        y: number;
-      };
-    };
-    outline: {
-      defaults: {
-        size: number;
-        color: string;
-        flags: number;
-      };
-      flags: {
-        OUTLINE_SHARP: number;
-        OUTLINE_SQUARE: number;
-      };
-    };
-    radial_blur: {
-      defaults: {
-        x: number;
-        y: number;
-        size: number;
-      };
-    };
-    rays: {
-      defaults: {
-        x: number;
-        y: number;
-        size: number;
-        color: string;
-        offset: number;
-        density: number;
-        threshold: number;
-        factor: number;
-        flags: number;
-      };
-      flags: {
-        FILTER_OVERLAY: number;
-        FILTER_UNDERLAY: number;
-      };
-    };
-    ripple: {
-      defaults: {
-        x: number;
-        y: number;
-        size: number;
-        repeat: number;
-        radius: number;
-        falloff: number;
-        flags: number;
-      };
-      flags: {
-        WAVE_BOUNDED: number;
-      };
-    };
-    wave: {
-      defaults: {
-        x: number;
-        y: number;
-        size: number;
-        offset: number;
-        flags: number;
-      };
-      flags: {
-        WAVE_SIDEWAYS: number;
-        WAVE_BOUNDED: number;
-      };
-    };
-  };
+type FilterTypeInfo = {
+  defaults: Record<string, any>;
+  flags?: Record<string, number>;
 };
 
 type Data = {
-  filter_info: MasterFilter;
+  filter_info: Record<string, FilterTypeInfo>;
   target_name: string;
-  target_filter_data: string[];
+  target_filter_data: Record<string, Record<string, any>>;
 };
 
-const FilterIntegerEntry = (props) => {
+type FilterIntegerEntryProps = {
+  readonly value: number;
+  readonly name: string;
+  readonly filterName: string;
+};
+
+const FilterIntegerEntry = (props: FilterIntegerEntryProps) => {
   const { value, name, filterName } = props;
-  const { act } = useBackend();
+  const { act } = useBackend<Data>();
   return (
     <NumberInput
       value={value}
@@ -173,9 +58,15 @@ const FilterIntegerEntry = (props) => {
   );
 };
 
-const FilterFloatEntry = (props) => {
+type FilterFloatEntryProps = {
+  readonly value: number;
+  readonly name: string;
+  readonly filterName: string;
+};
+
+const FilterFloatEntry = (props: FilterFloatEntryProps) => {
   const { value, name, filterName } = props;
-  const { act } = useBackend();
+  const { act } = useBackend<Data>();
   const [step, setStep] = useState(0.01);
 
   return (
@@ -201,8 +92,6 @@ const FilterFloatEntry = (props) => {
         Step:
       </Box>
       <NumberInput
-        minValue={-Infinity}
-        maxValue={Infinity}
         value={step}
         step={0.001}
         format={(value) => toFixed(value, 4)}
@@ -213,9 +102,15 @@ const FilterFloatEntry = (props) => {
   );
 };
 
-const FilterTextEntry = (props) => {
+type FilterTextEntryProps = {
+  readonly value: string;
+  readonly name: string;
+  readonly filterName: string;
+};
+
+const FilterTextEntry = (props: FilterTextEntryProps) => {
   const { value, name, filterName } = props;
-  const { act } = useBackend();
+  const { act } = useBackend<Data>();
 
   return (
     <Input
@@ -233,9 +128,15 @@ const FilterTextEntry = (props) => {
   );
 };
 
-const FilterColorEntry = (props) => {
+type FilterColorEntryProps = {
+  readonly value: string;
+  readonly filterName: string;
+  readonly name: string;
+};
+
+const FilterColorEntry = (props: FilterColorEntryProps) => {
   const { value, filterName, name } = props;
-  const { act } = useBackend();
+  const { act } = useBackend<Data>();
   return (
     <>
       <Button
@@ -263,9 +164,14 @@ const FilterColorEntry = (props) => {
   );
 };
 
-const FilterIconEntry = (props) => {
+type FilterIconEntryProps = {
+  readonly value: string;
+  readonly filterName: string;
+};
+
+const FilterIconEntry = (props: FilterIconEntryProps) => {
   const { value, filterName } = props;
-  const { act } = useBackend();
+  const { act } = useBackend<Data>();
   return (
     <>
       <Button
@@ -283,13 +189,20 @@ const FilterIconEntry = (props) => {
   );
 };
 
-const FilterFlagsEntry = (props) => {
+type FilterFlagsEntryProps = {
+  name: string;
+  value: number;
+  filterName: string;
+  filterType: string;
+};
+
+const FilterFlagsEntry = (props: FilterFlagsEntryProps) => {
   const { name, value, filterName, filterType } = props;
   const { act, data } = useBackend<Data>();
 
   const filterInfo = data.filter_info;
   const flags = filterInfo[filterType]['flags'];
-  return map(flags, (bitField: number, flagName) => (
+  return map(flags, (bitField, flagName) => (
     <Button.Checkbox
       checked={value & bitField}
       onClick={() =>
@@ -307,7 +220,15 @@ const FilterFlagsEntry = (props) => {
   ));
 };
 
-const FilterDataEntry = (props) => {
+type FilterDataEntryProps = {
+  readonly name: string;
+  readonly value: any;
+  readonly hasValue: boolean;
+  readonly filterName: string;
+  readonly filterType: string;
+};
+
+const FilterDataEntry = (props: FilterDataEntryProps) => {
   const { name, value, hasValue, filterName } = props;
 
   const filterEntryTypes = {
@@ -348,7 +269,12 @@ const FilterDataEntry = (props) => {
   );
 };
 
-const FilterEntry = (props) => {
+type FilterEntryProps = {
+  readonly name: string;
+  readonly filterDataEntry: Record<string, any>;
+};
+
+const FilterEntry = (props: FilterEntryProps) => {
   const { act, data } = useBackend<Data>();
   const { name, filterDataEntry } = props;
   const { type, priority, ...restOfProps } = filterDataEntry;
@@ -365,8 +291,6 @@ const FilterEntry = (props) => {
       buttons={
         <>
           <NumberInput
-            minValue={-Infinity}
-            maxValue={Infinity}
             value={priority}
             step={1}
             stepPixelSize={10}
@@ -397,7 +321,7 @@ const FilterEntry = (props) => {
         </>
       }
     >
-      <Section>
+      <Section level={2}>
         <LabeledList>
           {targetFilterPossibleKeys.map((entryName) => {
             const defaults = filterDefaults[type]['defaults'];
@@ -463,7 +387,6 @@ export const Filteriffic = (props) => {
           }
           buttons={
             <Dropdown
-              selected={null}
               icon="plus"
               verticalAlign="bottom"
               displayText="Add Filter"

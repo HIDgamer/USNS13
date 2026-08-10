@@ -1,20 +1,26 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import { Button, LabeledList, Section, Stack } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
 
-type Tech = { content: string; color: string; icon: string; tooltip: string };
+import { useBackend } from '../backend';
+import { Button, LabeledList, Section, Stack } from '../components';
+import { Window } from '../layouts';
+
+type Stat = {
+  content: string;
+  color: string;
+  icon: string;
+  tooltip: string;
+};
 
 type Data = {
+  total_points: number;
+  can_afford: BooleanLike;
+  valid_tier: BooleanLike;
+  unlocked: BooleanLike;
   theme: string;
+  cost: number;
   name: string;
   desc: string;
-  total_points: number;
-  valid_tier: BooleanLike;
-  can_afford: BooleanLike;
-  unlocked: BooleanLike;
-  cost: number;
-  stats?: Tech[];
+  stats?: Stat[];
 };
 
 export const TechNode = (props) => {
@@ -34,7 +40,7 @@ export const TechNode = (props) => {
 
   return (
     <Window width={500} height={300} theme={theme}>
-      <Window.Content>
+      <Window.Content scrollable>
         <Stack vertical fill>
           <Stack.Item grow>
             <Section

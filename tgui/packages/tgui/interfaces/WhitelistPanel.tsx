@@ -1,48 +1,62 @@
-import { useBackend } from 'tgui/backend';
-import { Button, Flex, Section, Stack } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { useBackend } from '../backend';
+import { Button, Flex, Section, Stack } from '../components';
+import { Window } from '../layouts';
 
-type BitFlagData = { name: String; bitflag: number; permission: number };
-
-type Data = {
-  whitelisted_players: { ckey: string; status: string }[];
-  current_menu: string;
-  user_rights: number;
-  viewed_player: { ckey: string; status: string };
-  target_rights: number;
-  new_rights: number;
-  co_flags: BitFlagData[];
-  syn_flags: BitFlagData[];
-  yaut_flags: BitFlagData[];
-  misc_flags: BitFlagData[];
+type Flag = {
+  name: string;
+  bitflag: number;
+  permission: number;
 };
 
-const PAGES = {
+type ViewedPlayer = {
+  ckey?: string;
+  status?: string;
+};
+
+type WhitelistedPlayer = {
+  ckey: string;
+  status: string;
+};
+
+type Data = {
+  current_menu: string;
+  co_flags: Flag[];
+  syn_flags: Flag[];
+  yaut_flags: Flag[];
+  misc_flags: Flag[];
+  viewed_player: ViewedPlayer;
+  user_rights: number;
+  target_rights: number;
+  new_rights: number;
+  whitelisted_players: WhitelistedPlayer[];
+};
+
+const PAGES: Record<string, () => React.ComponentType> = {
   Panel: () => PlayerList,
   Update: () => StatusUpdate,
 };
 
-export const WhitelistPanel = (props) => {
+export const WhitelistPanel = () => {
   const { data } = useBackend<Data>();
   const { current_menu } = data;
   const PageComponent = PAGES[current_menu]();
 
   return (
-    <Window theme={'crtblue'} width={990} height={750}>
-      <Window.Content>
+    <Window theme={'crtblue'} width={1100} height={750} resizable>
+      <Window.Content scrollable>
         <PageComponent />
       </Window.Content>
     </Window>
   );
 };
 
-const PlayerList = (props) => {
+const PlayerList = () => {
   const { data, act } = useBackend<Data>();
   const { whitelisted_players } = data;
 
   return (
-    <Section fill pb="3.5%">
-      <Flex align="center">
+    <Section>
+      <Flex align="center" grow>
         <Flex.Item mr="1rem">
           <Button
             icon="clipboard"
@@ -61,50 +75,48 @@ const PlayerList = (props) => {
           />
         </Flex.Item>
         <Flex.Item mr="1rem" width="90%">
-          <h1 style={{ textAlign: 'center' }}>Whitelist Panel</h1>
+          <h1 align="center">Whitelist Panel</h1>
         </Flex.Item>
       </Flex>
-      <Section fill m="1px" scrollable>
-        {!!whitelisted_players.length && (
-          <Flex
-            className="candystripe"
-            p=".75rem"
-            align="center"
-            fontSize="1.25rem"
-          >
-            <Flex.Item bold width="20rem" shrink="0" mr="5rem">
-              CKey
+      {!!whitelisted_players.length && (
+        <Flex
+          className="candystripe"
+          p=".75rem"
+          align="center"
+          fontSize="1.25rem"
+        >
+          <Flex.Item bold width="20rem" shrink="0" mr="5rem">
+            CKey
+          </Flex.Item>
+          <Flex.Item width="40rem" grow bold>
+            Status
+          </Flex.Item>
+        </Flex>
+      )}
+      {whitelisted_players.map((record, i) => {
+        return (
+          <Flex key={i} className="candystripe" p=".75rem" align="center">
+            <Flex.Item mr="5%">
+              <Button
+                icon="pen"
+                tooltip="Edit Whitelists"
+                onClick={() => act('select_player', { player: record.ckey })}
+              />
             </Flex.Item>
-            <Flex.Item width="40rem" grow bold>
-              Status
+            <Flex.Item bold width="20%" shrink="0" mr="1rem">
+              {record.ckey}
+            </Flex.Item>
+            <Flex.Item width="75%" ml="1rem" shrink="0">
+              {record.status}
             </Flex.Item>
           </Flex>
-        )}
-        {whitelisted_players.map((record, i) => {
-          return (
-            <Flex key={i} className="candystripe" p=".75rem" align="center">
-              <Flex.Item mr="1%">
-                <Button
-                  icon="pen"
-                  tooltip="Edit Whitelists"
-                  onClick={() => act('select_player', { player: record.ckey })}
-                />
-              </Flex.Item>
-              <Flex.Item bold width="24%" shrink="0" mr="1rem">
-                {record.ckey}
-              </Flex.Item>
-              <Flex.Item width="75%" ml="1rem" shrink="0">
-                {record.status}
-              </Flex.Item>
-            </Flex>
-          );
-        })}
-      </Section>
+        );
+      })}
     </Section>
   );
 };
 
-const StatusUpdate = (props) => {
+const StatusUpdate = () => {
   const { act, data } = useBackend<Data>();
   const {
     co_flags,
@@ -127,11 +139,9 @@ const StatusUpdate = (props) => {
           onClick={() => act('go_back')}
         />
       </Flex>
-      <h1 style={{ textAlign: 'center' }}>
-        Whitelists for: {viewed_player.ckey}
-      </h1>
+      <h1 align="center">Whitelists for: {viewed_player.ckey}</h1>
       <Section title="Commanding Officer">
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {co_flags.map((bit, i) => {
             const isWhitelisted = target_rights && target_rights & bit.bitflag;
             return (
@@ -147,7 +157,7 @@ const StatusUpdate = (props) => {
             );
           })}
         </Stack>
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {co_flags.map((bit, i) => {
             const new_state = new_rights && new_rights & bit.bitflag;
             const editable = user_rights && bit.permission & user_rights;
@@ -174,7 +184,7 @@ const StatusUpdate = (props) => {
         </Stack>
       </Section>
       <Section title="Synthetic">
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {syn_flags.map((bit, i) => {
             const isWhitelisted = target_rights && target_rights & bit.bitflag;
             return (
@@ -190,7 +200,7 @@ const StatusUpdate = (props) => {
             );
           })}
         </Stack>
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {syn_flags.map((bit, i) => {
             const new_state = new_rights && new_rights & bit.bitflag;
             const editable = user_rights && bit.permission & user_rights;
@@ -217,7 +227,7 @@ const StatusUpdate = (props) => {
         </Stack>
       </Section>
       <Section title="Yautja">
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {yaut_flags.map((bit, i) => {
             const isWhitelisted = target_rights && target_rights & bit.bitflag;
             return (
@@ -233,7 +243,7 @@ const StatusUpdate = (props) => {
             );
           })}
         </Stack>
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {yaut_flags.map((bit, i) => {
             const new_state = new_rights && new_rights & bit.bitflag;
             const editable = user_rights && bit.permission & user_rights;
@@ -260,7 +270,7 @@ const StatusUpdate = (props) => {
         </Stack>
       </Section>
       <Section title="Misc">
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {misc_flags.map((bit, i) => {
             const isWhitelisted = target_rights && target_rights & bit.bitflag;
             return (
@@ -276,7 +286,7 @@ const StatusUpdate = (props) => {
             );
           })}
         </Stack>
-        <Stack align="right" fill>
+        <Stack align="right" grow={1}>
           {misc_flags.map((bit, i) => {
             const new_state = new_rights && new_rights & bit.bitflag;
             const editable = user_rights && bit.permission & user_rights;

@@ -1,6 +1,6 @@
-import type { BooleanLike } from 'common/react';
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -10,16 +10,21 @@ import {
   Section,
   Stack,
   Tabs,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type ShipSection = {
+  section_id: string;
+};
 
 type Data = {
-  sections: { section_id: string }[];
-  disabled: BooleanLike;
+  sections: ShipSection[];
+  disabled: boolean;
   protecting_section: string;
 };
 
 export const AntiAirConsole = (props) => {
+  const { act, data } = useBackend<Data>();
   return (
     <Window width={400} height={300}>
       <Window.Content>

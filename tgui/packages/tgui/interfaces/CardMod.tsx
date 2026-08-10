@@ -1,6 +1,7 @@
-import type { BooleanLike } from 'common/react';
+import { BooleanLike } from 'common/react';
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -9,29 +10,44 @@ import {
   Section,
   Stack,
   Tabs,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+import { AccessList } from './common/AccessList';
 
-import { AccessList, type Regions } from './common/AccessList';
+type Job = {
+  display_name: string;
+  job: string;
+};
+
+type AccessEntry = {
+  desc: string;
+  ref: number | string;
+};
+
+type Region = {
+  name: string;
+  regid: number | string;
+  accesses: AccessEntry[];
+};
 
 type Data = {
   station_name: string;
   weyland_access: BooleanLike;
-  jobs: Record<string, { display_name: string; job: string }[]>;
-  regions: Regions;
   authenticated: BooleanLike;
   has_id: BooleanLike;
   id_name: string;
   id_rank?: string;
   id_owner?: string;
-  access_on_card?: string[];
-  id_account: number;
+  access_on_card?: Array<number | string>;
+  id_account?: number;
+  jobs: Record<string, Job[]>;
+  regions: Region[];
 };
 
 export const CardMod = (props) => {
   const [tab2, setTab2] = useState(1);
   return (
-    <Window width={450} height={520}>
+    <Window width={450} height={520} resizable>
       <Window.Content scrollable>
         <Box>{tab2 === 1 && <CardContent />}</Box>
       </Window.Content>
@@ -107,8 +123,7 @@ export const CardContent = (props) => {
           <>
             Linked Account:
             <NumberInput
-              step={1}
-              value={id_account}
+              value={id_account ?? 0}
               minValue={111111}
               maxValue={999999}
               width="60px"

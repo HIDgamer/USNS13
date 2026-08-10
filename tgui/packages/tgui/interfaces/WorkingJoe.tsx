@@ -1,19 +1,56 @@
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Flex, Section, Stack } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
 
-import type { DataCoreData } from './common/commonTypes';
+import { useBackend } from '../backend';
+import { Box, Button, Flex, Section, Stack } from '../components';
+import { Window } from '../layouts';
 
-type Data = DataCoreData & {
-  local_current_menu: string;
-  local_last_page: string;
-  local_logged_in: string;
-  local_access_text: string;
-  local_access_level: number;
-  local_notify_sounds: boolean;
+type MaintenanceTicket = {
+  id: number;
+  time: string;
+  priority_status: BooleanLike;
+  category: string;
+  details: string;
+  status: string;
+  submitter: string;
+  assignee: string | null;
+  lock_status: string;
+  ref: string;
 };
 
-const PAGES = {
+type AccessTicket = {
+  id: number;
+  time: string;
+  priority_status: BooleanLike;
+  title: string;
+  details: string;
+  status: string;
+  submitter: string;
+  assignee: string | null;
+  lock_status: string;
+  ref: string;
+};
+
+type SecurityVent = {
+  vent_tag: string;
+  ref: string;
+  available: BooleanLike;
+};
+
+type Data = {
+  local_current_menu: string;
+  local_last_page: string;
+  local_logged_in: string | null;
+  local_access_text: string;
+  local_access_level: number;
+  local_notify_sounds: BooleanLike;
+  apollo_log: string[];
+  apollo_access_log: string[];
+  maintenance_tickets: MaintenanceTicket[];
+  access_tickets: AccessTicket[];
+  security_vents: SecurityVent[];
+};
+
+const PAGES: Record<string, () => React.ComponentType> = {
   login: () => Login,
   main: () => MainMenu,
   apollo: () => ApolloLog,
@@ -22,10 +59,10 @@ const PAGES = {
   maint_claim: () => MaintManagement,
   access_requests: () => AccessRequests,
   access_tickets: () => AccessTickets,
-  // id_access: () => AccessID,
+  id_access: () => AccessID,
   core_security_gas: () => CoreSecGas,
 };
-export const WorkingJoe = (props) => {
+export const WorkingJoe = () => {
   const { data } = useBackend<Data>();
   const { local_current_menu } = data;
   const PageComponent = PAGES[local_current_menu]();
@@ -36,7 +73,7 @@ export const WorkingJoe = (props) => {
   }
 
   return (
-    <Window theme={themecolor} width={950} height={725}>
+    <Window theme={themecolor} width={1250} height={725} resizable>
       <Window.Content scrollable>
         <PageComponent />
       </Window.Content>
@@ -44,8 +81,8 @@ export const WorkingJoe = (props) => {
   );
 };
 
-const Login = (props) => {
-  const { act } = useBackend();
+const Login = () => {
+  const { act } = useBackend<Data>();
 
   return (
     <Flex
@@ -80,7 +117,7 @@ const Login = (props) => {
   );
 };
 
-const MainMenu = (props) => {
+const MainMenu = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -145,7 +182,7 @@ const MainMenu = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Navigation Menu</h1>
+        <h1 align="center">Navigation Menu</h1>
         <Stack>
           <Stack.Item grow>
             <h3>Request Submission</h3>
@@ -264,7 +301,7 @@ const MainMenu = (props) => {
       </Section>
       {local_access_level >= 5 && (
         <Section>
-          <h1 style={{ textAlign: 'center' }}>Core Security Protocols</h1>
+          <h1 align="center">Core Security Protocols</h1>
           <Stack>
             <Stack.Item grow>
               <Button
@@ -303,7 +340,7 @@ const MainMenu = (props) => {
   );
 };
 
-const ApolloLog = (props) => {
+const ApolloLog = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -352,7 +389,7 @@ const ApolloLog = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Apollo Log</h1>
+        <h1 align="center">Apollo Log</h1>
 
         {apollo_log.map((apollo_message, i) => {
           return (
@@ -366,7 +403,7 @@ const ApolloLog = (props) => {
   );
 };
 
-const LoginRecords = (props) => {
+const LoginRecords = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -415,7 +452,7 @@ const LoginRecords = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Login Records</h1>
+        <h1 align="center">Login Records</h1>
 
         {apollo_access_log.map((login, i) => {
           return (
@@ -429,7 +466,7 @@ const LoginRecords = (props) => {
   );
 };
 
-const MaintReports = (props) => {
+const MaintReports = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -477,7 +514,7 @@ const MaintReports = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Maintenance Reports</h1>
+        <h1 align="center">Maintenance Reports</h1>
         <Flex
           direction="column"
           justify="center"
@@ -582,7 +619,7 @@ const MaintReports = (props) => {
     </>
   );
 };
-const MaintManagement = (props) => {
+const MaintManagement = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -631,7 +668,7 @@ const MaintManagement = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Maintenance Reports Management</h1>
+        <h1 align="center">Maintenance Reports Management</h1>
 
         {!!maintenance_tickets.length && (
           <Flex
@@ -735,7 +772,7 @@ const MaintManagement = (props) => {
     </>
   );
 };
-const AccessRequests = (props) => {
+const AccessRequests = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -785,7 +822,7 @@ const AccessRequests = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Request Access</h1>
+        <h1 align="center">Request Access</h1>
         <Flex
           direction="column"
           justify="center"
@@ -898,7 +935,7 @@ const AccessRequests = (props) => {
   );
 };
 
-const AccessTickets = (props) => {
+const AccessTickets = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -947,7 +984,7 @@ const AccessTickets = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Access Ticket Management</h1>
+        <h1 align="center">Access Ticket Management</h1>
         {!!access_tickets.length && (
           <Flex
             mt="2rem"
@@ -1009,12 +1046,12 @@ const AccessTickets = (props) => {
             update_tooltip =
               'Access self-returned. No further changes possible.';
           }
-          let can_reject = true;
+          let can_reject = 'Yes';
           if (can_update === 'No') {
-            can_reject = false;
+            can_reject = 'No';
           }
           if (ticket.status !== 'pending') {
-            can_reject = false;
+            can_reject = 'No';
           }
 
           return (
@@ -1042,11 +1079,11 @@ const AccessTickets = (props) => {
                   disabled={can_update === 'No'}
                   onClick={() => act('auth_access', { ticket: ticket.ref })}
                 />
-                {can_reject && (
+                {can_reject === 'Yes' && (
                   <Button.Confirm
                     icon="user-minus"
                     tooltip="Reject Ticket"
-                    disabled={!can_reject}
+                    disabled={can_reject === 'No'}
                     onClick={() => act('reject_access', { ticket: ticket.ref })}
                   />
                 )}
@@ -1059,7 +1096,7 @@ const AccessTickets = (props) => {
   );
 };
 
-const CoreSecGas = (props) => {
+const CoreSecGas = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1109,7 +1146,7 @@ const CoreSecGas = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Nerve Gas Release</h1>
+        <h1 align="center">Nerve Gas Release</h1>
         {security_vents.map((vent, i) => {
           return (
             <Button.Confirm
@@ -1129,3 +1166,11 @@ const CoreSecGas = (props) => {
     </>
   );
 };
+
+// NOTE: PAGES["id_access"] refers to this component, but it was never
+// implemented in the original .jsx (no backend path ever sets
+// local_current_menu to "id_access" either, so this was unreachable dead
+// code there too). Referencing the undefined `AccessID` identifier is a
+// hard compile error in TS, so a minimal stub is kept here to preserve the
+// PAGES table shape without changing any reachable behavior. See report.
+const AccessID = () => null;

@@ -1,7 +1,8 @@
-import type { BooleanLike } from 'common/react';
+import { BooleanLike } from 'common/react';
 import { capitalizeAll } from 'common/string';
 import { Fragment } from 'react';
-import { useBackend } from 'tgui/backend';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -9,23 +10,30 @@ import {
   ProgressBar,
   Section,
   Slider,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type Skill = {
+  name: string;
+  realname: string;
+  level: number;
+  maxlevel: number;
+};
 
 type Data = {
-  admin: BooleanLike;
   skillset_name: string;
+  skills: Skill[];
   owner: string;
-  skills: { name: string; realname: string; level: number; maxlevel: number }[];
+  admin: BooleanLike;
 };
 
 export const SkillsMenu = (props) => {
   const { act, data } = useBackend<Data>();
-  const { skillset_name, skills, admin } = data;
+  const { skillset_name, skills, owner, admin } = data;
 
   return (
-    <Window width={300} height={550}>
-      <Window.Content>
+    <Window width={300} height={550} theme="crtlobby">
+      <Window.Content scrollable>
         <Section
           title={'Skillset name: ' + skillset_name}
           buttons={
@@ -38,7 +46,7 @@ export const SkillsMenu = (props) => {
             />
           }
         >
-          {skills ? (
+          {skills && skills.length > 0 ? (
             admin ? (
               <SkillsEdit />
             ) : (
@@ -55,7 +63,7 @@ export const SkillsMenu = (props) => {
 
 const SkillsView = (props) => {
   const { act, data } = useBackend<Data>();
-  const { skills } = data;
+  const { skillset_name, skills, owner, admin } = data;
   return skills.map((skill, index) => (
     <Fragment key={index}>
       <ProgressBar value={skill.level / skill.maxlevel}>
@@ -68,7 +76,7 @@ const SkillsView = (props) => {
 
 const SkillsEdit = (props) => {
   const { act, data } = useBackend<Data>();
-  const { skills } = data;
+  const { skillset_name, skills, owner, admin } = data;
   return skills.map((skill, index) => (
     <Fragment key={index}>
       <Slider

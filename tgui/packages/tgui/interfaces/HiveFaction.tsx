@@ -1,18 +1,25 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import { Button, Flex, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
+import { Button, Flex, Section } from '../components';
+import { Window } from '../layouts';
+
+type GlobFactions = {
+  Xenomorph: string[];
+  Human: string[];
+  Raw?: string[];
+};
 
 type Data = {
+  glob_factions: GlobFactions;
   current_allies: Record<string, BooleanLike>;
-  glob_factions: Record<string, string[]>;
 };
 
 export const HiveFaction = (props) => {
   const { act, data } = useBackend<Data>();
   const { glob_factions, current_allies } = data;
 
-  const onFactionButtonClick = (faction) =>
+  const onFactionButtonClick = (faction: string) =>
     act('set_ally', {
       should_ally: !current_allies[faction],
       target_faction: faction,

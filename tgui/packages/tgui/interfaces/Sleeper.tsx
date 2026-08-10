@@ -1,6 +1,7 @@
 import { round } from 'common/math';
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -10,8 +11,54 @@ import {
   NoticeBox,
   ProgressBar,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type Occupant = {
+  name: string;
+  stat: number;
+  health: number;
+  maxHealth: number;
+  minHealth: number;
+  bruteLoss: number;
+  oxyLoss: number;
+  toxLoss: number;
+  fireLoss: number;
+  paralysis: number;
+  hasBlood: BooleanLike;
+  bodyTemperature: number;
+  maxTemp: number;
+  temperatureSuitability: number;
+  btCelsius: number;
+  btFaren: number;
+  totalreagents: number;
+  reagentswhenstarted: number;
+  pulse?: number;
+  bloodLevel?: number;
+  bloodMax?: number;
+  bloodPercent?: number;
+};
+
+type Chemical = {
+  title: string;
+  id: string;
+  occ_amount: number;
+  pretty_amount: number;
+  injectable: BooleanLike;
+  overdosing: BooleanLike;
+  od_warning: BooleanLike;
+};
+
+type Data = {
+  hasOccupant?: BooleanLike;
+  occupant?: Occupant;
+  chemicals?: Chemical[];
+  maxchem?: number;
+  minhealth?: number;
+  dialysis?: BooleanLike;
+  auto_eject_dead?: BooleanLike;
+  amounts?: number[];
+};
 
 const stats = [
   ['good', 'Alive'],
@@ -19,7 +66,9 @@ const stats = [
   ['bad', 'DEAD'],
 ];
 
-const damages = [
+type DamageKey = 'bruteLoss' | 'fireLoss' | 'toxLoss' | 'oxyLoss';
+
+const damages: [string, DamageKey][] = [
   ['Brute', 'bruteLoss'],
   ['Burn', 'fireLoss'],
   ['Toxin', 'toxLoss'],
@@ -41,73 +90,21 @@ const tempColors = [
   'bad',
 ];
 
-type HumanData = {
-  pulse: number;
-  bloodLevel: number;
-  bloodMax: number;
-  bloodPercent: number;
-};
-
-type OccupantData = {
-  name: string;
-  stat: number;
-  health: number;
-  maxHealth: number;
-  minHealth: number;
-  bruteLoss: number;
-  oxyLoss: number;
-  toxLoss: number;
-  fireLoss: number;
-  paralysis: number;
-  hasBlood: BooleanLike;
-  bodyTemperature: number;
-  maxTemp: number;
-  temperatureSuitability: number;
-  btCelsius: number;
-  btFaren: number;
-  totalreagents: number;
-  reagentswhenstarted: number;
-} & Partial<HumanData>;
-
-type ChemicalData = {
-  title: string;
-  id: string;
-  commands: { chemical: string };
-  occ_amount: number;
-  pretty_amount: number;
-  injectable: BooleanLike;
-  overdosing: BooleanLike;
-  od_warning: BooleanLike;
-};
-
-type Data = {
-  connected: string | null;
-  connected_operable: BooleanLike;
-  amounts: number[];
-  hasOccupant: BooleanLike;
-  occupant: OccupantData;
-  maxchem: number;
-  minhealth: number;
-  dialysis: BooleanLike;
-  auto_eject_dead: BooleanLike;
-  chemicals: ChemicalData[];
-};
-
-export const Sleeper = (props) => {
-  const { act, data } = useBackend<Data>();
+export const Sleeper = () => {
+  const { data } = useBackend<Data>();
   const { hasOccupant } = data;
   const body = hasOccupant ? <SleeperMain /> : <SleeperEmpty />;
   const windowHeight = hasOccupant ? 850 : 150;
   return (
-    <Window width={500} height={windowHeight}>
-      <Window.Content className="Layout__content--flexColumn">
+    <Window resizable width={500} height={windowHeight}>
+      <Window.Content scrollable className="Layout__content--flexColumn">
         {body}
       </Window.Content>
     </Window>
   );
 };
 
-const SleeperMain = (props) => {
+const SleeperMain = () => {
   return (
     <>
       <SleeperDialysis />
@@ -118,7 +115,7 @@ const SleeperMain = (props) => {
   );
 };
 
-const SleeperOccupant = (props) => {
+const SleeperOccupant = () => {
   const { act, data } = useBackend<Data>();
   const { occupant, auto_eject_dead } = data;
   return (
@@ -145,47 +142,47 @@ const SleeperOccupant = (props) => {
       }
     >
       <LabeledList>
-        <LabeledList.Item label="Name">{occupant.name}</LabeledList.Item>
+        <LabeledList.Item label="Name">{occupant!.name}</LabeledList.Item>
         <LabeledList.Item label="Health">
           <ProgressBar
-            value={occupant.health / occupant.maxHealth}
+            value={occupant!.health / occupant!.maxHealth}
             ranges={{
               good: [0.5, Infinity],
               average: [0, 0.5],
               bad: [-Infinity, 0],
             }}
           >
-            {round(occupant.health, 0)}
+            {round(occupant!.health, 0)}
           </ProgressBar>
         </LabeledList.Item>
-        <LabeledList.Item label="Status" color={stats[occupant.stat][0]}>
-          {stats[occupant.stat][1]}
+        <LabeledList.Item label="Status" color={stats[occupant!.stat][0]}>
+          {stats[occupant!.stat][1]}
         </LabeledList.Item>
         <LabeledList.Item label="Temperature">
           <ProgressBar
-            value={occupant.bodyTemperature / occupant.maxTemp}
-            color={tempColors[occupant.temperatureSuitability + 3]}
+            value={occupant!.bodyTemperature / occupant!.maxTemp}
+            color={tempColors[occupant!.temperatureSuitability + 3]}
           >
-            {round(occupant.btCelsius, 0)}&deg;C,
-            {round(occupant.btFaren, 0)}&deg;F
+            {round(occupant!.btCelsius, 0)}&deg;C,
+            {round(occupant!.btFaren, 0)}&deg;F
           </ProgressBar>
         </LabeledList.Item>
-        {!!occupant.hasBlood && (
+        {!!occupant!.hasBlood && (
           <>
             <LabeledList.Item label="Blood Level">
               <ProgressBar
-                value={occupant.bloodLevel! / occupant.bloodMax!}
+                value={occupant!.bloodLevel! / occupant!.bloodMax!}
                 ranges={{
                   bad: [-Infinity, 0.6],
                   average: [0.6, 0.9],
                   good: [0.6, Infinity],
                 }}
               >
-                {occupant.bloodPercent}%, {occupant.bloodLevel}cl
+                {occupant!.bloodPercent}%, {occupant!.bloodLevel}cl
               </ProgressBar>
             </LabeledList.Item>
             <LabeledList.Item label="Pulse" verticalAlign="middle">
-              {occupant.pulse} BPM
+              {occupant!.pulse} BPM
             </LabeledList.Item>
           </>
         )}
@@ -194,7 +191,7 @@ const SleeperOccupant = (props) => {
   );
 };
 
-const SleeperDamage = (props) => {
+const SleeperDamage = () => {
   const { data } = useBackend<Data>();
   const { occupant } = data;
   return (
@@ -204,10 +201,10 @@ const SleeperDamage = (props) => {
           <LabeledList.Item key={i} label={d[0]}>
             <ProgressBar
               key={i}
-              value={occupant[d[1]] / 100}
+              value={occupant![d[1]] / 100}
               ranges={damageRange}
             >
-              {round(occupant[d[1]], 0)}
+              {round(occupant![d[1]], 0)}
             </ProgressBar>
           </LabeledList.Item>
         ))}
@@ -216,11 +213,11 @@ const SleeperDamage = (props) => {
   );
 };
 
-const SleeperDialysis = (props) => {
+const SleeperDialysis = () => {
   const { act, data } = useBackend<Data>();
   const { hasOccupant, dialysis, occupant } = data;
   const canDialysis = dialysis;
-  const dialysisDisabled = !hasOccupant || !occupant.totalreagents;
+  const dialysisDisabled = !hasOccupant || !occupant!.totalreagents;
   return (
     <Section
       title="Dialysis"
@@ -235,15 +232,15 @@ const SleeperDialysis = (props) => {
         </Button>
       }
     >
-      {!occupant.totalreagents && (
+      {!occupant!.totalreagents && (
         <NoticeBox danger>Occupant has no chemicals to remove!</NoticeBox>
       )}
       {(canDialysis && (
         <ProgressBar
-          value={occupant.totalreagents / occupant.reagentswhenstarted}
+          value={occupant!.totalreagents / occupant!.reagentswhenstarted}
           title="Reagents left/Reagents when dialysis was started"
         >
-          {occupant.totalreagents}/{occupant.reagentswhenstarted}
+          {occupant!.totalreagents}/{occupant!.reagentswhenstarted}
         </ProgressBar>
       )) ||
         (!dialysisDisabled && <NoticeBox info>Dialysis inactive!</NoticeBox>)}
@@ -251,12 +248,12 @@ const SleeperDialysis = (props) => {
   );
 };
 
-const SleeperChemicals = (props) => {
+const SleeperChemicals = () => {
   const { act, data } = useBackend<Data>();
   const { occupant, chemicals, maxchem, amounts } = data;
   return (
     <Section title="Occupant Chemicals">
-      {chemicals.map((chem, i) => {
+      {chemicals!.map((chem, i) => {
         let barColor = '';
         let odWarning;
         if (chem.overdosing) {
@@ -286,23 +283,23 @@ const SleeperChemicals = (props) => {
             >
               <Flex align="flex-start">
                 <ProgressBar
-                  value={chem.occ_amount / maxchem}
+                  value={chem.occ_amount / maxchem!}
                   color={barColor}
                   title="Amount of chemicals currently inside the occupant / Total amount injectable by this machine"
                   mr="0.5rem"
                 >
                   {chem.pretty_amount}/{maxchem}u
                 </ProgressBar>
-                {amounts.map((a, i) => (
+                {amounts!.map((a, i) => (
                   <Button
                     key={i}
                     disabled={
                       !chem.injectable ||
-                      chem.occ_amount + a > maxchem ||
-                      occupant.stat === 2
+                      chem.occ_amount + a > maxchem! ||
+                      occupant!.stat === 2
                     }
                     icon="syringe"
-                    tooltip={
+                    title={
                       'Inject ' +
                       a +
                       'u of ' +
@@ -330,11 +327,11 @@ const SleeperChemicals = (props) => {
   );
 };
 
-const SleeperEmpty = (props) => {
+const SleeperEmpty = () => {
   return (
     <Section textAlign="center">
       <Flex height="100%">
-        <Flex.Item grow="1" align="center" color="label">
+        <Flex.Item grow={1} align="center" color="label">
           <Icon name="user-slash" mb="0.5rem" size={5} />
           <br />
           No occupant detected.

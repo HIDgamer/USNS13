@@ -1,24 +1,114 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Flex, Section, Stack } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
 
-import { DataCoreData } from './common/commonTypes';
+import { useBackend } from '../backend';
+import { Box, Button, Flex, Section, Stack } from '../components';
+import { Window } from '../layouts';
 
-type Data = DataCoreData & {
-  local_admin_login: string;
-  admin_access_log: string[];
+type AresLogRecord = {
+  time: string;
+  title: string;
+  details: string;
+  ref: string;
+};
+
+type AresUserLogRecord = AresLogRecord & {
+  user: string;
+};
+
+type TechLogRecord = {
+  time: string;
+  user: string;
+  details: string;
+  tier_changer: BooleanLike;
+  ref: string;
+};
+
+type DeletionLogRecord = {
+  time: string;
+  title: string;
+  details: string;
+  user: string;
+  ref: string;
+};
+
+type DeletedDiscussionRecord = {
+  time: string;
+  title: string;
+  ref: string;
+};
+
+// The backend (get_interface_data() in ARES_interface_data.dm) sends
+// "user", "ref", "conversation" and "title" for each entry here. It never
+// tracks a start time for ongoing 1:1 conversations, so there is no "time"
+// field -- ActiveTalks below shows the user instead of a timestamp.
+type DiscussionRecord = {
+  user: string;
+  ref: string;
+  conversation: string[];
+  title: string;
+};
+
+type SecurityVent = {
+  vent_tag: string;
+  ref: string;
+  available: BooleanLike;
+};
+
+type AccessTicket = {
+  id: number | string;
+  time: string;
+  priority_status: BooleanLike;
+  title: string;
+  details: string;
+  status: string;
+  submitter: string;
+  assignee: string | null;
+  lock_status: string;
+  ref: string;
+};
+
+type MaintenanceTicket = {
+  id: number | string;
+  time: string;
+  priority_status: BooleanLike;
+  category: string;
+  details: string;
+  status: string;
+  submitter: string;
+  assignee: string | null;
+  lock_status: string;
+  ref: string;
+};
+
+type Data = {
   local_current_menu: string;
   local_last_page: string;
-  ares_logged_in: String;
+  local_admin_login: string;
+  ares_logged_in: string;
   ares_sudo: BooleanLike;
   ares_access_text: string;
   local_spying_conversation: string[];
-  local_active_convo: String[];
-  local_active_ref: String;
+  local_active_convo: string[];
+  local_active_ref: string | null;
+  ares_access_log: string[];
+  admin_access_log: string[];
+  records_announcement: AresLogRecord[];
+  records_bioscan: AresLogRecord[];
+  records_bombardment: AresUserLogRecord[];
+  apollo_log: string[];
+  records_deletion: DeletionLogRecord[];
+  records_flight: AresUserLogRecord[];
+  records_security: AresLogRecord[];
+  records_tech: TechLogRecord[];
+  records_requisition: AresUserLogRecord[];
+  records_discussions: DiscussionRecord[];
+  deleted_discussions: DeletedDiscussionRecord[];
+  security_vents: SecurityVent[];
+  access_tickets: AccessTicket[];
+  maintenance_tickets: MaintenanceTicket[];
 };
 
-const PAGES = {
+const PAGES: Record<string, () => React.ComponentType> = {
   login: () => Login,
   main: () => MainMenu,
   announcements: () => AnnouncementLogs,
@@ -47,17 +137,23 @@ export const AresAdmin = (props) => {
   const { local_current_menu, ares_sudo } = data;
   const PageComponent = PAGES[local_current_menu]();
 
-  let themecolor = 'crtyellow';
-  if (ares_sudo) {
-    themecolor = 'crtred';
-  } else if (local_current_menu === 'emergency') {
-    themecolor = 'crtred';
-  } else if (local_current_menu === 'core_security') {
-    themecolor = 'crtred';
+  // Escalation signal preserved as an accent layer on the shared admin theme instead of
+  // switching between crtyellow/crtred — those are machinery-shared theme files (Overwatch
+  // Console also offers them as ui_theme options), not meant to be repurposed as an admin-only
+  // state indicator.
+  let accent: string | undefined;
+  if (
+    ares_sudo >= 1 ||
+    local_current_menu === 'emergency' ||
+    local_current_menu === 'core_security'
+  ) {
+    accent = 'critical';
+  } else {
+    accent = 'warning';
   }
 
   return (
-    <Window theme={themecolor} width={950} height={725}>
+    <Window theme="admin" themeAccent={accent} width={950} height={725}>
       <Window.Content scrollable>
         <PageComponent />
       </Window.Content>
@@ -65,7 +161,7 @@ export const AresAdmin = (props) => {
   );
 };
 
-const Login = (props) => {
+const Login = () => {
   const { act } = useBackend<Data>();
 
   return (
@@ -101,7 +197,7 @@ const Login = (props) => {
   );
 };
 
-const MainMenu = (props) => {
+const MainMenu = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -154,7 +250,7 @@ const MainMenu = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Navigation Menu</h1>
+        <h1 align="center">Navigation Menu</h1>
 
         <Stack>
           <Stack.Item grow>
@@ -364,7 +460,7 @@ const MainMenu = (props) => {
           <Stack.Item grow>
             <h3>Maintenance Access</h3>
           </Stack.Item>
-          {ares_sudo ? (
+          {ares_sudo === 0 && (
             <Stack.Item>
               <Button
                 tooltip="You cannot do this via remote console."
@@ -373,30 +469,31 @@ const MainMenu = (props) => {
                 px="2rem"
                 width="25vw"
                 bold
-                disabled={!!ares_access_text}
-              >
-                Sudo Logout
-              </Button>
-            </Stack.Item>
-          ) : (
-            <Stack.Item>
-              <Button
-                tooltip="You cannot do this via remote console."
-                icon="user-secret"
-                ml="auto"
-                px="2rem"
-                width="25vw"
-                bold
-                disabled={!!ares_access_text}
+                disabled={ares_access_text}
               >
                 Sudo Login
+              </Button>
+            </Stack.Item>
+          )}
+          {ares_sudo >= 1 && (
+            <Stack.Item>
+              <Button
+                tooltip="You cannot do this via remote console."
+                icon="user-secret"
+                ml="auto"
+                px="2rem"
+                width="25vw"
+                bold
+                disabled={ares_access_text}
+              >
+                Sudo Logout
               </Button>
             </Stack.Item>
           )}
         </Stack>
       </Section>
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Core Security Protocols</h1>
+        <h1 align="center">Core Security Protocols</h1>
         <Stack>
           <Stack.Item grow>
             <Button
@@ -470,7 +567,7 @@ const MainMenu = (props) => {
   );
 };
 
-const AnnouncementLogs = (props) => {
+const AnnouncementLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -522,7 +619,7 @@ const AnnouncementLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Announcement Logs</h1>
+        <h1 align="center">Announcement Logs</h1>
 
         {!!records_announcement.length && (
           <Flex
@@ -558,7 +655,7 @@ const AnnouncementLogs = (props) => {
                 <Button.Confirm
                   icon="trash"
                   tooltip="You cannot do this via remote console."
-                  disabled={!!ares_access_text}
+                  disabled={ares_access_text}
                 />
               </Flex.Item>
             </Flex>
@@ -569,7 +666,7 @@ const AnnouncementLogs = (props) => {
   );
 };
 
-const BioscanLogs = (props) => {
+const BioscanLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -621,7 +718,7 @@ const BioscanLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Bioscan Logs</h1>
+        <h1 align="center">Bioscan Logs</h1>
 
         {!!records_bioscan.length && (
           <Flex
@@ -657,7 +754,7 @@ const BioscanLogs = (props) => {
                 <Button.Confirm
                   icon="trash"
                   tooltip="You cannot do this via remote console."
-                  disabled={!!ares_access_text}
+                  disabled={ares_access_text}
                 />
               </Flex.Item>
             </Flex>
@@ -668,7 +765,7 @@ const BioscanLogs = (props) => {
   );
 };
 
-const BombardmentLogs = (props) => {
+const BombardmentLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -720,7 +817,7 @@ const BombardmentLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Orbital Bombardment Logs</h1>
+        <h1 align="center">Orbital Bombardment Logs</h1>
 
         {!!records_bombardment.length && (
           <Flex
@@ -760,7 +857,7 @@ const BombardmentLogs = (props) => {
                 <Button.Confirm
                   icon="trash"
                   tooltip="You cannot do this via remote console."
-                  disabled={!!ares_access_text}
+                  disabled={ares_access_text}
                 />
               </Flex.Item>
             </Flex>
@@ -771,7 +868,7 @@ const BombardmentLogs = (props) => {
   );
 };
 
-const ApolloLog = (props) => {
+const ApolloLog = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -823,7 +920,7 @@ const ApolloLog = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Apollo Log</h1>
+        <h1 align="center">Apollo Log</h1>
 
         {apollo_log.map((apollo_message, i) => {
           return (
@@ -837,7 +934,7 @@ const ApolloLog = (props) => {
   );
 };
 
-const AccessLogs = (props) => {
+const AccessLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -889,7 +986,7 @@ const AccessLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Access Log</h1>
+        <h1 align="center">Access Log</h1>
 
         {ares_access_log.map((login, i) => {
           return (
@@ -903,7 +1000,7 @@ const AccessLogs = (props) => {
   );
 };
 
-const DeletionLogs = (props) => {
+const DeletionLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -955,7 +1052,7 @@ const DeletionLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Deletion Log</h1>
+        <h1 align="center">Deletion Log</h1>
 
         {!!records_deletion.length && (
           <Flex
@@ -999,7 +1096,7 @@ const DeletionLogs = (props) => {
   );
 };
 
-const ARESTalk = (props) => {
+const ARESTalk = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1052,7 +1149,7 @@ const ARESTalk = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>ARES Communication</h1>
+        <h1 align="center">ARES Communication</h1>
       </Section>
 
       <Section align="center">
@@ -1128,7 +1225,7 @@ const ARESTalk = (props) => {
   );
 };
 
-const DeletedTalks = (props) => {
+const DeletedTalks = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1180,7 +1277,7 @@ const DeletedTalks = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Deletion 1:1 Log</h1>
+        <h1 align="center">Deletion 1:1 Log</h1>
         {!!deleted_discussions.length && (
           <Flex
             className="candystripe"
@@ -1223,7 +1320,7 @@ const DeletedTalks = (props) => {
   );
 };
 
-const ActiveTalks = (props) => {
+const ActiveTalks = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1275,7 +1372,7 @@ const ActiveTalks = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Active 1:1 Records</h1>
+        <h1 align="center">Active 1:1 Records</h1>
         {!!records_discussions.length && (
           <Flex
             className="candystripe"
@@ -1283,8 +1380,8 @@ const ActiveTalks = (props) => {
             align="center"
             fontSize="1.25rem"
           >
-            <Flex.Item bold width="6rem" shrink="0" mr="1rem">
-              Deletion Time
+            <Flex.Item bold width="10rem" shrink="0" mr="1rem">
+              User
             </Flex.Item>
             <Flex.Item grow bold>
               Title
@@ -1297,8 +1394,8 @@ const ActiveTalks = (props) => {
         {records_discussions.map((record, i) => {
           return (
             <Flex key={i} className="candystripe" p=".75rem" align="center">
-              <Flex.Item bold width="6rem" shrink="0" mr="1rem">
-                {record.time}
+              <Flex.Item bold width="10rem" shrink="0" mr="1rem">
+                {record.user}
               </Flex.Item>
               <Flex.Item grow italic>
                 {record.title}
@@ -1318,7 +1415,7 @@ const ActiveTalks = (props) => {
   );
 };
 
-const ReadingTalks = (props) => {
+const ReadingTalks = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1370,7 +1467,7 @@ const ReadingTalks = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Deleted Conversation</h1>
+        <h1 align="center">Deleted Conversation</h1>
         {local_spying_conversation.map((message, i) => {
           return (
             <Flex key={i} className="candystripe" p=".75rem" align="center">
@@ -1383,7 +1480,7 @@ const ReadingTalks = (props) => {
   );
 };
 
-const Requisitions = (props) => {
+const Requisitions = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1435,7 +1532,7 @@ const Requisitions = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>ASRS Audit Log</h1>
+        <h1 align="center">ASRS Audit Log</h1>
         {!!records_requisition.length && (
           <Flex
             className="candystripe"
@@ -1480,7 +1577,7 @@ const Requisitions = (props) => {
   );
 };
 
-const FlightLogs = (props) => {
+const FlightLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1532,7 +1629,7 @@ const FlightLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Flight Control Logs</h1>
+        <h1 align="center">Flight Control Logs</h1>
         {!!records_flight.length && (
           <Flex
             className="candystripe"
@@ -1567,7 +1664,7 @@ const FlightLogs = (props) => {
                 <Button.Confirm
                   icon="trash"
                   tooltip="Delete Record"
-                  disabled={!!ares_access_text}
+                  disabled={ares_access_text}
                   onClick={() => act('delete_record', { record: record.ref })}
                 />
               </Flex.Item>
@@ -1579,7 +1676,7 @@ const FlightLogs = (props) => {
   );
 };
 
-const Security = (props) => {
+const Security = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1631,7 +1728,7 @@ const Security = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Security Updates</h1>
+        <h1 align="center">Security Updates</h1>
         {!!records_security.length && (
           <Flex
             className="candystripe"
@@ -1666,7 +1763,7 @@ const Security = (props) => {
                 <Button.Confirm
                   icon="trash"
                   tooltip="You cannot do this via remote console."
-                  disabled={!!ares_access_text}
+                  disabled={ares_access_text}
                 />
               </Flex.Item>
             </Flex>
@@ -1677,7 +1774,7 @@ const Security = (props) => {
   );
 };
 
-const Emergency = (props) => {
+const Emergency = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1727,7 +1824,7 @@ const Emergency = (props) => {
         </Flex>
       </Section>
 
-      <h1 style={{ textAlign: 'center' }}>Emergency Protocols</h1>
+      <h1 align="center">Emergency Protocols</h1>
       <Flex align="center" justify="center" height="50%" direction="column">
         <Button.Confirm
           tooltip="You cannot do this via remote console."
@@ -1739,7 +1836,7 @@ const Emergency = (props) => {
           p="1rem"
           mt="5rem"
           bold
-          disabled={!!ares_access_text}
+          disabled={ares_access_text}
         >
           Call General Quarters
         </Button.Confirm>
@@ -1753,7 +1850,7 @@ const Emergency = (props) => {
           p="1rem"
           mt="5rem"
           bold
-          disabled={!!ares_access_text}
+          disabled={ares_access_text}
         >
           Initiate Evacuation
         </Button.Confirm>
@@ -1767,7 +1864,7 @@ const Emergency = (props) => {
           p="1rem"
           mt="5rem"
           bold
-          disabled={!!ares_access_text}
+          disabled={ares_access_text}
         >
           Launch Distress Beacon
         </Button.Confirm>
@@ -1781,7 +1878,7 @@ const Emergency = (props) => {
           p="1rem"
           mt="5rem"
           bold
-          disabled={!!ares_access_text}
+          disabled={ares_access_text}
         >
           Request Nuclear Device
         </Button.Confirm>
@@ -1790,7 +1887,7 @@ const Emergency = (props) => {
   );
 };
 
-const TechLogs = (props) => {
+const TechLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1842,7 +1939,7 @@ const TechLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Tech Control Logs</h1>
+        <h1 align="center">Tech Control Logs</h1>
         {!!records_tech.length && (
           <Flex
             className="candystripe"
@@ -1896,7 +1993,7 @@ const TechLogs = (props) => {
                 <Button.Confirm
                   icon="trash"
                   tooltip="Delete Record"
-                  disabled={!!local_current_menu}
+                  disabled={local_current_menu}
                   onClick={() => act('delete_record', { record: record.ref })}
                 />
               </Flex.Item>
@@ -1908,7 +2005,7 @@ const TechLogs = (props) => {
   );
 };
 
-const CoreSec = (props) => {
+const CoreSec = () => {
   const { data, act } = useBackend<Data>();
   const {
     ares_logged_in,
@@ -1960,10 +2057,10 @@ const CoreSec = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Core Security Protocols</h1>
+        <h1 align="center">Core Security Protocols</h1>
       </Section>
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Nerve Gas Release</h1>
+        <h1 align="center">Nerve Gas Release</h1>
         {security_vents.map((vent, i) => {
           return (
             <Button.Confirm
@@ -1988,7 +2085,7 @@ const CoreSec = (props) => {
 // Anything below this line is exclusive to the Admin Remote Interface.
 // -------------------------------------------------------------------- //
 
-const AdminAccessLogs = (props) => {
+const AdminAccessLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_last_page,
@@ -2034,7 +2131,7 @@ const AdminAccessLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Access Log</h1>
+        <h1 align="center">Access Log</h1>
 
         {admin_access_log.map((login, i) => {
           return (
@@ -2048,7 +2145,7 @@ const AdminAccessLogs = (props) => {
   );
 };
 
-const AccessManagement = (props) => {
+const AccessManagement = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_last_page,
@@ -2094,7 +2191,7 @@ const AccessManagement = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Access Ticket Management</h1>
+        <h1 align="center">Access Ticket Management</h1>
         {!!access_tickets.length && (
           <Flex
             mt="2rem"
@@ -2150,12 +2247,12 @@ const AccessManagement = (props) => {
             update_tooltip =
               'Access self-returned. No further changes possible.';
           }
-          let can_reject = true;
+          let can_reject = 'Yes';
           if (can_update === 'No') {
-            can_reject = false;
+            can_reject = 'No';
           }
           if (ticket.status !== 'pending') {
-            can_reject = false;
+            can_reject = 'No';
           }
 
           return (
@@ -2183,11 +2280,11 @@ const AccessManagement = (props) => {
                   disabled={can_update === 'No'}
                   onClick={() => act('auth_access', { ticket: ticket.ref })}
                 />
-                {can_reject && (
+                {can_reject === 'Yes' && (
                   <Button.Confirm
                     icon="user-minus"
                     tooltip="Reject Ticket"
-                    disabled={!can_reject}
+                    disabled={can_reject === 'No'}
                     onClick={() => act('reject_access', { ticket: ticket.ref })}
                   />
                 )}
@@ -2200,7 +2297,7 @@ const AccessManagement = (props) => {
   );
 };
 
-const MaintManagement = (props) => {
+const MaintManagement = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_last_page,
@@ -2246,7 +2343,7 @@ const MaintManagement = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Maintenance Reports Management</h1>
+        <h1 align="center">Maintenance Reports Management</h1>
 
         <Flex
           direction="column"

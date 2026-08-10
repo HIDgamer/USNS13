@@ -4,6 +4,10 @@ import { Window } from 'tgui/layouts';
 
 type Data = { filt_on: boolean };
 
+type Data = {
+  filt_on: boolean;
+};
+
 export const FiltrationControl = () => {
   const { act, data } = useBackend<Data>();
 

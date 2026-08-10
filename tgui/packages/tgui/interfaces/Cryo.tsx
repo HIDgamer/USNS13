@@ -1,15 +1,44 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { useBackend } from '../backend';
 import {
   AnimatedNumber,
   Button,
   LabeledList,
   ProgressBar,
   Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+import { BeakerContents } from './common/BeakerContents';
 
-import { BeakerContents, type BeakerProps } from './common/BeakerContents';
+type Occupant = {
+  name?: string;
+  stat?: string;
+  statstate?: string;
+  health?: number;
+  maxHealth?: number;
+  minHealth?: number;
+  bruteLoss?: number;
+  oxyLoss?: number;
+  toxLoss?: number;
+  fireLoss?: number;
+  bodyTemperature?: number;
+  temperaturestatus?: string;
+};
+
+type BeakerContent = {
+  name: string;
+  volume: number;
+};
+
+type Data = {
+  isOperating: boolean;
+  hasOccupant: boolean;
+  autoEject: boolean;
+  notify: boolean;
+  occupant: Occupant;
+  cellTemperature: number;
+  isBeakerLoaded: boolean;
+  beakerContents: BeakerContent[];
+};
 
 const damageTypes = [
   {
@@ -28,31 +57,7 @@ const damageTypes = [
     label: 'Burn',
     type: 'fireLoss',
   },
-];
-
-type Data = {
-  isOperating: BooleanLike;
-  hasOccupant: BooleanLike;
-  autoEject: BooleanLike;
-  notify: BooleanLike;
-  occupant: {
-    name: string;
-    stat: string;
-    statstate: string;
-    health: number;
-    maxHealth: number;
-    minHealth: number;
-    bruteLoss: number;
-    oxyLoss: number;
-    toxLoss: number;
-    fireLoss: number;
-    bodyTemperature: number;
-    temperaturestatus: string;
-  };
-  cellTemperature: number;
-  isBeakerLoaded: BooleanLike;
-  beakerContents: BeakerProps;
-};
+] as const;
 
 export const Cryo = () => {
   return (
@@ -87,15 +92,17 @@ const CryoContent = (props) => {
                 label="Temperature"
                 color={data.occupant.temperaturestatus}
               >
-                <AnimatedNumber value={data.occupant.bodyTemperature} />
+                <AnimatedNumber value={data.occupant.bodyTemperature ?? 0} />
                 {' K'}
               </LabeledList.Item>
               <LabeledList.Item label="Health">
                 <ProgressBar
-                  value={data.occupant.health / data.occupant.maxHealth}
-                  color={data.occupant.health > 0 ? 'good' : 'average'}
+                  value={
+                    (data.occupant.health ?? 0) / (data.occupant.maxHealth ?? 1)
+                  }
+                  color={(data.occupant.health ?? 0) > 0 ? 'good' : 'average'}
                 >
-                  <AnimatedNumber value={data.occupant.health} />
+                  <AnimatedNumber value={data.occupant.health ?? 0} />
                 </ProgressBar>
               </LabeledList.Item>
               {damageTypes.map((damageType) => (
@@ -103,8 +110,12 @@ const CryoContent = (props) => {
                   key={damageType.type}
                   label={damageType.label}
                 >
-                  <ProgressBar value={data.occupant[damageType.type] / 100}>
-                    <AnimatedNumber value={data.occupant[damageType.type]} />
+                  <ProgressBar
+                    value={(data.occupant[damageType.type] ?? 0) / 100}
+                  >
+                    <AnimatedNumber
+                      value={data.occupant[damageType.type] ?? 0}
+                    />
                   </ProgressBar>
                 </LabeledList.Item>
               ))}

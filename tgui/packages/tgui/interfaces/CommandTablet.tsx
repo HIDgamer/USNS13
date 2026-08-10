@@ -13,6 +13,17 @@ type Data = {
   worldtime: number;
 };
 
+type Data = {
+  faction: string;
+  cooldown_message: number;
+  distresstimelock: number;
+  alert_level: number;
+  evac_status: number;
+  endtime: number;
+  distresstime: number;
+  worldtime: number;
+};
+
 export const CommandTablet = () => {
   const { act, data } = useBackend<Data>();
 

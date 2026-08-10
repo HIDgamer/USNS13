@@ -1,5 +1,4 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend, useSharedState } from 'tgui/backend';
+import { useBackend, useSharedState } from '../backend';
 import {
   Box,
   Button,
@@ -12,13 +11,13 @@ import {
   Stack,
   Table,
   Tabs,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-type MarineData = {
+type Marine = {
   name: string;
   state: string;
-  has_helmet: BooleanLike;
+  has_helmet: boolean;
   role: string;
   acting_sl: string;
   fteam: string;
@@ -27,45 +26,46 @@ type MarineData = {
   ref: string;
 };
 
+type SavedCoordinate = {
+  x: number;
+  y: number;
+  comment: string;
+  index: number;
+};
+
 type Data = {
-  marines: MarineData[];
-  squad_leader: MarineData;
-  total_deployed: number;
-  living_count: number;
-  leader_count: number;
-  ftl_count: number;
-  spec_count: number;
-  medic_count: number;
-  engi_count: number;
-  smart_count: number;
-  leaders_alive: number;
-  ftl_alive: number;
-  spec_alive: number;
-  medic_alive: number;
-  engi_alive: number;
-  smart_alive: number;
-  specialist_type: string;
   theme: string;
-  squad_list: string[];
-  current_squad: string;
-  primary_objective: string[] | null;
-  secondary_objective: string[] | null;
-  z_hidden: BooleanLike;
-  saved_coordinates: {
-    x: number;
-    y: number;
-    z: number;
-    comment: string;
-    index: number;
-  }[];
-  can_launch_crates: BooleanLike;
-  has_crate_loaded: BooleanLike;
-  can_launch_obs: BooleanLike;
+  squad_list?: string[];
+  current_squad?: string;
+  primary_objective?: string;
+  secondary_objective?: string;
+  marines?: Marine[];
+  squad_leader?: Marine;
+  z_hidden?: number;
+  saved_coordinates?: SavedCoordinate[];
+  can_launch_crates?: boolean;
+  has_crate_loaded?: unknown;
+  can_launch_obs?: unknown;
   ob_cooldown?: number;
-  ob_loaded: BooleanLike;
-  ob_safety: Boolean;
-  supply_cooldown: number;
-  operator: string;
+  ob_loaded?: unknown;
+  supply_cooldown?: number;
+  operator?: string;
+  total_deployed?: number;
+  living_count?: number;
+  leader_count?: number;
+  ftl_count?: number;
+  spec_count?: number;
+  medic_count?: number;
+  engi_count?: number;
+  smart_count?: number;
+  leaders_alive?: number;
+  ftl_alive?: number;
+  spec_alive?: number;
+  medic_alive?: number;
+  engi_alive?: number;
+  smart_alive?: number;
+  specialist_type?: string;
+  distress_time_lock?: number;
 };
 
 export const OverwatchConsole = (props) => {
@@ -105,7 +105,7 @@ const HomePanel = (props) => {
       title="OVERWATCH DISABLED - SELECT SQUAD"
     >
       <Stack justify="center" align="end" fontSize="20px">
-        {data.squad_list.map((squad, index) => {
+        {data.squad_list?.map((squad, index) => {
           return (
             <Stack.Item key={index}>
               <Button
@@ -192,7 +192,7 @@ const MainDashboard = (props) => {
   return (
     <Section
       fontSize="16px"
-      title={current_squad + ' Overwatch | Dashboard'}
+      title={current_squad! + ' Overwatch | Dashboard'}
       buttons={
         <>
           <Button icon="user" onClick={() => act('change_operator')}>
@@ -232,7 +232,7 @@ const MainDashboard = (props) => {
             inline
             width="23%"
             icon="person"
-            onClick={() => act('remind_primary')}
+            onClick={() => act('check_primary')}
           >
             REMIND PRIMARY
           </Button>
@@ -250,7 +250,7 @@ const MainDashboard = (props) => {
             inline
             width="23%"
             icon="person"
-            onClick={() => act('remind_secondary')}
+            onClick={() => act('check_secondary')}
           >
             REMIND SECONDARY
           </Button>
@@ -329,46 +329,46 @@ const RoleTable = (props) => {
         {(squad_leader && (
           <Table.Cell textAlign="center">
             {squad_leader.name ? squad_leader.name : 'NONE'}
-            <Box color={squad_leader.state !== 'Dead' ? 'green' : 'red'}>
+            <Box color={squad_leader.state !== 'Dead' ? 'good' : 'bad'}>
               {squad_leader.state !== 'Dead' ? 'ALIVE' : 'DEAD'}
             </Box>
           </Table.Cell>
         )) || (
           <Table.Cell textAlign="center">
             NONE
-            <Box color="red">NOT DEPLOYED</Box>
+            <Box color="bad">NOT DEPLOYED</Box>
           </Table.Cell>
         )}
 
         <Table.Cell textAlign="center" bold>
           <Box>{ftl_count} DEPLOYED</Box>
-          <Box color={ftl_alive ? 'green' : 'red'}>{ftl_alive} ALIVE</Box>
+          <Box color={ftl_alive ? 'good' : 'bad'}>{ftl_alive} ALIVE</Box>
         </Table.Cell>
         <Table.Cell textAlign="center" bold>
           <Box>{specialist_type ? specialist_type : 'NONE'}</Box>
-          <Box color={spec_alive ? 'green' : 'red'}>
+          <Box color={spec_alive ? 'good' : 'bad'}>
             {spec_count ? (spec_alive ? 'ALIVE' : 'DEAD') : 'NOT DEPLOYED'}
           </Box>
         </Table.Cell>
         <Table.Cell textAlign="center" bold>
-          <Box color={smart_count ? 'green' : 'red'}>
+          <Box color={smart_count ? 'good' : 'bad'}>
             {smart_count ? smart_count + ' DEPLOYED' : 'NONE'}
           </Box>
-          <Box color={smart_alive ? 'green' : 'red'}>
+          <Box color={smart_alive ? 'good' : 'bad'}>
             {smart_count ? (smart_alive ? 'ALIVE' : 'DEAD') : 'N/A'}
           </Box>
         </Table.Cell>
         <Table.Cell textAlign="center" bold>
           <Box>{medic_count} DEPLOYED</Box>
-          <Box color={medic_alive ? 'green' : 'red'}>{medic_alive} ALIVE</Box>
+          <Box color={medic_alive ? 'good' : 'bad'}>{medic_alive} ALIVE</Box>
         </Table.Cell>
         <Table.Cell textAlign="center" bold>
           <Box>{engi_count} DEPLOYED</Box>
-          <Box color={engi_alive ? 'green' : 'red'}>{engi_alive} ALIVE</Box>
+          <Box color={engi_alive ? 'good' : 'bad'}>{engi_alive} ALIVE</Box>
         </Table.Cell>
         <Table.Cell textAlign="center" bold>
           <Box>{total_deployed} TOTAL</Box>
-          <Box color={living_count ? 'green' : 'red'}>{living_count} ALIVE</Box>
+          <Box color={living_count ? 'good' : 'bad'}>{living_count} ALIVE</Box>
         </Table.Cell>
       </Table.Row>
     </Table>
@@ -378,7 +378,7 @@ const RoleTable = (props) => {
 const SquadMonitor = (props) => {
   const { act, data } = useBackend<Data>();
 
-  const sortByRole = (a, b) => {
+  const sortByRole = (a: any, b: any) => {
     a = a.role;
     b = b.role;
     const roleValues = {
@@ -410,36 +410,39 @@ const SquadMonitor = (props) => {
 
   let { marines, squad_leader } = data;
 
-  const [hidden_marines, setHiddenMarines] = useSharedState(
+  const [hidden_marines, setHiddenMarines] = useSharedState<string[]>(
     'hidden_marines',
-    [] as string[],
+    [],
   );
 
-  const [showHiddenMarines, setShowHiddenMarines] = useSharedState(
+  const [showHiddenMarines, setShowHiddenMarines] = useSharedState<boolean>(
     'showhidden',
     false,
   );
-  const [showDeadMarines, setShowDeadMarines] = useSharedState(
+  const [showDeadMarines, setShowDeadMarines] = useSharedState<boolean>(
     'showdead',
     true,
   );
 
-  const [marineSearch, setMarineSearch] = useSharedState('marinesearch', '');
+  const [marineSearch, setMarineSearch] = useSharedState<string | null>(
+    'marinesearch',
+    null,
+  );
 
-  let determine_status_color = (status) => {
+  let determine_status_color = (status: string) => {
     let conscious = status.includes('Conscious');
     let unconscious = status.includes('Unconscious');
 
-    let state_color = 'red';
+    let state_color = 'bad';
     if (conscious) {
-      state_color = 'green';
+      state_color = 'good';
     } else if (unconscious) {
-      state_color = 'yellow';
+      state_color = 'average';
     }
     return state_color;
   };
 
-  let toggle_marine_hidden = (ref) => {
+  let toggle_marine_hidden = (ref: string) => {
     if (!hidden_marines.includes(ref)) {
       setHiddenMarines([...hidden_marines, ref]);
     } else {
@@ -463,7 +466,7 @@ const SquadMonitor = (props) => {
 
   return (
     <Section
-      pb="3%"
+      pb="1.5%"
       fill
       fontSize="14px"
       title="Monitor"
@@ -518,7 +521,7 @@ const SquadMonitor = (props) => {
         value={marineSearch}
         onInput={(e, value) => setMarineSearch(value)}
       />
-      <Section m="2px" pb="2px" fill scrollable>
+      <Section m="2px" mb="4px" fill height="95%" scrollable>
         <Table>
           <Table.Row bold fontSize="14px">
             <Table.Cell textAlign="center">Name</Table.Cell>
@@ -533,7 +536,7 @@ const SquadMonitor = (props) => {
             <Table.Cell textAlign="center" />
           </Table.Row>
           {squad_leader && (
-            <Table.Row key="index" bold>
+            <Table.Row key={squad_leader.ref} bold>
               <Table.Cell collapsing p="2px">
                 {(squad_leader.has_helmet && (
                   <Button
@@ -563,7 +566,7 @@ const SquadMonitor = (props) => {
             marines
               .sort(sortByRole)
               .filter((marine) => {
-                if (marineSearch && !marineSearch.includes('\\')) {
+                if (marineSearch) {
                   const searchableString = String(marine.name).toLowerCase();
                   return searchableString.match(new RegExp(marineSearch, 'i'));
                 }
@@ -643,7 +646,6 @@ const SupplyDrop = (props) => {
 
   const [supplyX, setSupplyX] = useSharedState('supplyx', 0);
   const [supplyY, setSupplyY] = useSharedState('supply', 0);
-  const [supplyZ, setSupplyZ] = useSharedState('supplyz', 0);
 
   let crate_status = 'Crate Loaded';
   let crate_color = 'green';
@@ -662,31 +664,15 @@ const SupplyDrop = (props) => {
           <LabeledControls mb="5px">
             <LabeledControls.Item label="LONGITUDE">
               <NumberInput
-                step={1}
                 value={supplyX}
-                minValue={-Infinity}
-                maxValue={Infinity}
                 onChange={(value) => setSupplyX(value)}
                 width="75px"
               />
             </LabeledControls.Item>
             <LabeledControls.Item label="LATITUDE">
               <NumberInput
-                step={1}
                 value={supplyY}
-                minValue={-Infinity}
-                maxValue={Infinity}
                 onChange={(value) => setSupplyY(value)}
-                width="75px"
-              />
-            </LabeledControls.Item>
-            <LabeledControls.Item label="HEIGHT">
-              <NumberInput
-                step={1}
-                value={supplyZ}
-                minValue={-Infinity}
-                maxValue={Infinity}
-                onChange={(value) => setSupplyZ(value)}
                 width="75px"
               />
             </LabeledControls.Item>
@@ -702,9 +688,7 @@ const SupplyDrop = (props) => {
               width="100%"
               icon="box"
               color="yellow"
-              onClick={() =>
-                act('dropsupply', { x: supplyX, y: supplyY, z: supplyZ })
-              }
+              onClick={() => act('dropsupply', { x: supplyX, y: supplyY })}
             >
               Launch
             </Button>
@@ -714,7 +698,7 @@ const SupplyDrop = (props) => {
               icon="save"
               color="yellow"
               onClick={() =>
-                act('save_coordinates', { x: supplyX, y: supplyY, z: supplyZ })
+                act('save_coordinates', { x: supplyX, y: supplyY })
               }
             >
               Save
@@ -726,7 +710,7 @@ const SupplyDrop = (props) => {
         </Stack.Item>
         <SavedCoordinates forSupply />
       </Stack>
-      <Divider />
+      <Divider horizontal />
     </Section>
   );
 };
@@ -736,16 +720,12 @@ const OrbitalBombardment = (props) => {
 
   const [OBX, setOBX] = useSharedState('obx', 0);
   const [OBY, setOBY] = useSharedState('oby', 0);
-  const [OBZ, setOBZ] = useSharedState('obz', 0);
 
   let ob_status = 'Ready';
   let ob_color = 'green';
   if (data.ob_cooldown) {
     ob_status = 'Cooldown - ' + data.ob_cooldown / 10 + ' seconds';
     ob_color = 'yellow';
-  } else if (data.ob_safety) {
-    ob_status = 'Cannon Safety Engaged';
-    ob_color = 'red';
   } else if (!data.ob_loaded) {
     ob_status = 'Not chambered';
     ob_color = 'red';
@@ -758,31 +738,15 @@ const OrbitalBombardment = (props) => {
           <LabeledControls mb="5px">
             <LabeledControls.Item label="LONGITUDE">
               <NumberInput
-                step={1}
                 value={OBX}
-                minValue={-Infinity}
-                maxValue={Infinity}
                 onChange={(value) => setOBX(value)}
                 width="75px"
               />
             </LabeledControls.Item>
             <LabeledControls.Item label="LATITUDE">
               <NumberInput
-                step={1}
                 value={OBY}
-                minValue={-Infinity}
-                maxValue={Infinity}
                 onChange={(value) => setOBY(value)}
-                width="75px"
-              />
-            </LabeledControls.Item>
-            <LabeledControls.Item label="HEIGHT">
-              <NumberInput
-                step={1}
-                value={OBZ}
-                minValue={-Infinity}
-                maxValue={Infinity}
-                onChange={(value) => setOBZ(value)}
                 width="75px"
               />
             </LabeledControls.Item>
@@ -797,9 +761,9 @@ const OrbitalBombardment = (props) => {
             <Button
               fontSize="20px"
               width="100%"
-              icon={data.ob_safety ? 'ban' : 'bomb'}
-              color={data.ob_safety ? 'transperant' : 'red'}
-              onClick={() => act('dropbomb', { x: OBX, y: OBY, z: OBZ })}
+              icon="bomb"
+              color="red"
+              onClick={() => act('dropbomb', { x: OBX, y: OBY })}
             >
               Fire
             </Button>
@@ -808,9 +772,7 @@ const OrbitalBombardment = (props) => {
               width="100%"
               icon="save"
               color="yellow"
-              onClick={() =>
-                act('save_coordinates', { x: OBX, y: OBY, z: OBZ })
-              }
+              onClick={() => act('save_coordinates', { x: OBX, y: OBY })}
             >
               Save
             </Button>
@@ -821,32 +783,33 @@ const OrbitalBombardment = (props) => {
         </Stack.Item>
         <SavedCoordinates forOB />
       </Stack>
-      <Divider />
+      <Divider horizontal />
     </Section>
   );
 };
 
-const SavedCoordinates = (props) => {
+type SavedCoordinatesProps = {
+  readonly forOB?: boolean;
+  readonly forSupply?: boolean;
+};
+
+const SavedCoordinates = (props: SavedCoordinatesProps) => {
   const { act, data } = useBackend<Data>();
 
   const [OBX, setOBX] = useSharedState('obx', 0);
   const [OBY, setOBY] = useSharedState('oby', 0);
-  const [OBZ, setOBZ] = useSharedState('obz', 0);
   const [supplyX, setSupplyX] = useSharedState('supplyx', 0);
   const [supplyY, setSupplyY] = useSharedState('supply', 0);
-  const [supplyZ, setSupplyZ] = useSharedState('supplyz', 0);
 
   const { forOB, forSupply } = props;
 
-  let transferCoords = (x, y, z) => {
+  let transferCoords = (x: number, y: number) => {
     if (forSupply) {
       setSupplyX(x);
       setSupplyY(y);
-      setSupplyZ(z);
     } else if (forOB) {
       setOBX(x);
       setOBY(y);
-      setOBZ(z);
     }
   };
 
@@ -863,17 +826,13 @@ const SavedCoordinates = (props) => {
           <Table.Cell p="5px" collapsing>
             LAT.
           </Table.Cell>
-          <Table.Cell p="5px" collapsing>
-            HEIGHT
-          </Table.Cell>
           <Table.Cell p="5px">COMMENT</Table.Cell>
           <Table.Cell p="5px" collapsing />
         </Table.Row>
-        {data.saved_coordinates.map((coords, index) => (
+        {data.saved_coordinates?.map((coords, index) => (
           <Table.Row key={index}>
             <Table.Cell p="6px">{coords.x}</Table.Cell>
             <Table.Cell p="5px">{coords.y}</Table.Cell>
-            <Table.Cell p="4px">{coords.z}</Table.Cell>
             <Table.Cell p="5px">
               <Input
                 width="100%"
@@ -890,7 +849,7 @@ const SavedCoordinates = (props) => {
               <Button
                 color="yellow"
                 icon="arrow-left"
-                onClick={() => transferCoords(coords.x, coords.y, coords.z)}
+                onClick={() => transferCoords(coords.x, coords.y)}
               />
             </Table.Cell>
           </Table.Row>

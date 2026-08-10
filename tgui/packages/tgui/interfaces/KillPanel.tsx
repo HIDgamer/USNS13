@@ -1,23 +1,25 @@
-import { useBackend } from 'tgui/backend';
-import { Box, Collapsible, NoticeBox, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { useBackend } from '../backend';
+import { Box, Collapsible, NoticeBox, Section } from '../components';
+import { Window } from '../layouts';
+
+type DeathEntry = {
+  mob_name: string;
+  job_name: string;
+  area_name: string;
+  cause_name: string;
+  total_kills: number;
+  total_damage: { name: string; value: number }[];
+  time_of_death: string;
+  total_time_alive: string;
+  total_damage_taken: number;
+  x: number;
+  y: number;
+  z: number;
+};
 
 type Data = {
   death_data: {
-    death_stats_list: {
-      mob_name: string;
-      job_name: string;
-      area_name: string;
-      cause_name: string;
-      total_kills: number;
-      total_damage: number;
-      time_of_death: number;
-      total_time_alive: number;
-      total_damage_taken: number;
-      x: number;
-      y: number;
-      z: number;
-    }[];
+    death_stats_list?: DeathEntry[];
   };
 };
 
@@ -25,11 +27,13 @@ export const KillPanel = (props) => {
   const { act, data } = useBackend<Data>();
   const { death_data } = data;
 
+  const hasKills = !!death_data?.death_stats_list?.length;
+
   return (
     <Window width={300} height={600}>
       <Window.Content scrollable>
         <Section>
-          {death_data ? (
+          {hasKills ? (
             <KillView />
           ) : (
             <NoticeBox danger>No recorded kills!</NoticeBox>
@@ -44,7 +48,7 @@ const KillView = (props) => {
   const { act, data } = useBackend<Data>();
   const { death_data } = data;
 
-  const real_data = death_data['death_stats_list'];
+  const real_data = death_data.death_stats_list ?? [];
 
   return real_data.map((entry, index) => (
     <Collapsible

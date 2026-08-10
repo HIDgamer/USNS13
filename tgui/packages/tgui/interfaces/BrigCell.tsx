@@ -1,6 +1,7 @@
 import { addZeros } from 'common/math';
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { BooleanLike } from 'common/react';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -10,23 +11,29 @@ import {
   LabeledList,
   NoticeBox,
   ProgressBar,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
+
+type Incident = {
+  suspect: string;
+  status: number;
+  ref: string;
+};
 
 type Data = {
-  viewing_incident: Boolean;
+  viewing_incident: BooleanLike;
+  incidents: Incident[];
+  can_pardon: BooleanLike;
+  bit_active: number;
+  bit_served: number;
+  bit_pardoned: number;
+  bit_perma: number;
   time?: number;
   suspect?: string;
   brig_sentence?: number;
   time_to_release?: number;
   time_served?: number;
   status?: number;
-  incidents: { suspect: string; status: number; ref: string }[];
-  can_pardon: BooleanLike;
-  bit_active: number;
-  bit_served: number;
-  bit_pardoned: number;
-  bit_perma: number;
 };
 
 export const BrigCell = (props) => {
@@ -101,20 +108,19 @@ export const BrigCell = (props) => {
 // Returns the time left, in seconds.
 const getTimeLeft = function (data: Data) {
   const {
-    time_to_release = 0,
-    time = 0,
-    status = 0,
+    time_to_release,
+    time,
+    status,
     bit_active,
-    brig_sentence = 0,
-    time_served = 0,
+    brig_sentence,
+    time_served,
   } = data;
 
-  const isActive = status & bit_active;
-
-  let timeLeft = (time_to_release - time) / 10;
+  const isActive = (status as number) & bit_active;
+  let timeLeft = ((time_to_release as number) - (time as number)) / 10;
 
   if (!isActive) {
-    timeLeft = (brig_sentence * 600 - time_served) / 10;
+    timeLeft = ((brig_sentence as number) * 600 - (time_served as number)) / 10;
   }
 
   return Math.max(0, timeLeft);
@@ -138,7 +144,7 @@ const IncidentDetails = (props) => {
   const time_left = getTimeLeft(data);
 
   // 0 to 1, for the progress bar.
-  const progress = 1 - time_left / 60 / (brig_sentence || 1);
+  const progress = 1 - time_left / 60 / (brig_sentence as number);
 
   // The time in 5:05 format.
   const time_left_pretty =
@@ -146,13 +152,14 @@ const IncidentDetails = (props) => {
     ':' +
     addZeros(Math.floor(time_left % 60), 2);
 
-  const isActive = status && status & bit_active;
-  const isPerma = status && status & bit_perma;
-  const isPardoned = status && status & bit_pardoned;
-  const isServed = status && status & bit_served;
+  const isActive = (status as number) & bit_active;
+  const isPerma = (status as number) & bit_perma;
+  const isPardoned = (status as number) & bit_pardoned;
+  const isServed = (status as number) & bit_served;
   const isStarted = time_served || isActive;
 
-  let statusText, statusClass;
+  let statusText: string | undefined;
+  let statusClass: string | undefined;
   if (isPardoned) {
     statusText = 'PARDONED';
     statusClass = 'info';
@@ -203,7 +210,7 @@ const IncidentDetails = (props) => {
           value={progress}
           p="1.25rem"
           color="average"
-          style={{ border: 'none', margin: '0' }}
+          style={{ border: 'none', margin: 0 }}
         >
           <Flex justify="center" fontSize="2rem" bold>
             {time_left_pretty}

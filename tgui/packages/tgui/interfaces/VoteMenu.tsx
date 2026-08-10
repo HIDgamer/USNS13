@@ -1,9 +1,37 @@
-import type { BooleanLike } from 'common/react';
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Flex, Section, Tabs } from 'tgui/components';
-import { Window } from 'tgui/layouts';
-const PAGES = [
+
+import { useBackend } from '../backend';
+import { Box, Button, Flex, Section, Tabs } from '../components';
+import { Window } from '../layouts';
+
+type Data = {
+  is_admin: boolean;
+  vote_in_progress: string | null;
+  vote_choices: Record<string, number>;
+  vote_title: string | null;
+  can_restart_vote: boolean;
+  can_gamemode_vote: boolean;
+  possible_vote_types: Record<string, VoteTypeInfo>;
+  vote_has_voted: boolean;
+};
+
+type VoteTypeInfo = {
+  name: string;
+  color: string;
+  icon: string;
+  admin_only?: boolean;
+  variable_required?: keyof Data;
+};
+
+type Page = {
+  title: string;
+  component: () => () => React.ReactNode;
+  color: string;
+  icon: string;
+  canAccess?: (data: Data) => boolean;
+};
+
+const PAGES: Page[] = [
   {
     title: 'Vote',
     component: () => MainMenu,
@@ -26,33 +54,8 @@ const PAGES = [
   },
 ];
 
-type VoteEntry = {
-  name: string;
-  color: string;
-  icon: string;
-  variable_required?: string;
-  adminOnly?: BooleanLike;
-};
-
-type Data = {
-  possible_vote_types: {
-    restart: VoteEntry;
-    gamemode: VoteEntry;
-    shipmap: VoteEntry;
-    groundmap: VoteEntry;
-    custom: VoteEntry;
-  };
-  vote_has_voted: BooleanLike;
-  is_admin: BooleanLike;
-  vote_in_progress: string | null;
-  can_restart_vote: BooleanLike;
-  can_gamemode_vote: BooleanLike;
-  vote_choices: string[];
-  vote_title: string;
-};
-
-export const VoteMenu = (props) => {
-  const { data } = useBackend();
+export const VoteMenu = () => {
+  const { data } = useBackend<Data>();
 
   const [pageIndex, setPageIndex] = useState(0);
 
@@ -86,7 +89,7 @@ export const VoteMenu = (props) => {
   );
 };
 
-const MainMenu = (props) => {
+const MainMenu = () => {
   const { act, data } = useBackend<Data>();
   const {
     vote_in_progress,
@@ -157,7 +160,7 @@ const MainMenu = (props) => {
   );
 };
 
-const StartVote = (props) => {
+const StartVote = () => {
   const { act, data } = useBackend<Data>();
   const { possible_vote_types, is_admin, vote_in_progress } = data;
 
@@ -195,7 +198,7 @@ const StartVote = (props) => {
   );
 };
 
-const SettingsMenu = (props) => {
+const SettingsMenu = () => {
   const { act, data } = useBackend<Data>();
   const { can_restart_vote, can_gamemode_vote } = data;
 

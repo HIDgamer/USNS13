@@ -1,14 +1,6 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import {
-  Box,
-  Button,
-  LabeledList,
-  ProgressBar,
-  Section,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
-
+import { useBackend } from '../backend';
+import { Box, Button, LabeledList, ProgressBar, Section } from '../components';
+import { Window } from '../layouts';
 import { InterfaceLockNoticeBox } from './common/InterfaceLockNoticeBox';
 
 type PowerChannel = {
@@ -16,25 +8,30 @@ type PowerChannel = {
   powerLoad: string;
   status: number;
   topicParams: {
-    auto: { eqp?: number; lgt?: number; env?: number };
-    on: { eqp?: number; lgt?: number; env?: number };
-    off: { eqp?: number; lgt?: number; env?: number };
+    auto: Record<string, number>;
+    on: Record<string, number>;
+    off: Record<string, number>;
   };
 };
 
+type MalfStatus = {
+  icon: string;
+  action: string;
+  content: string;
+};
+
 type Data = {
-  locked: BooleanLike;
-  isOperating: BooleanLike;
+  locked: boolean;
+  isOperating: boolean;
   externalPower: number;
   powerCellStatus: number | null;
-  chargeMode: BooleanLike;
+  chargeMode: boolean;
   chargingStatus: number;
   totalLoad: string;
-  coverLocked: BooleanLike;
-  siliconUser: BooleanLike;
+  coverLocked: boolean;
+  siliconUser: boolean;
+  malfStatus: MalfStatus | null;
   powerChannels: PowerChannel[];
-  wires: { numbeR: number; cut: BooleanLike }[];
-  proper_name: string;
 };
 
 export const Apc = (props) => {
@@ -73,9 +70,7 @@ const ApcContent = (props) => {
   const chargingStatus =
     powerStatusMap[data.chargingStatus] || powerStatusMap[0];
   const channelArray = data.powerChannels || [];
-  const adjustedCellChange = data.powerCellStatus
-    ? data.powerCellStatus / 100
-    : 0;
+  const adjustedCellChange = (data.powerCellStatus ?? 0) / 100;
   return (
     <>
       <InterfaceLockNoticeBox />
@@ -176,23 +171,22 @@ const ApcContent = (props) => {
       <Section
         title="Misc"
         buttons={
-          !!data.siliconUser /* }&& (
+          !!data.siliconUser && (
             <>
-
               {!!data.malfStatus && (
                 <Button
-                  icon={malfStatus.icon}
+                  icon={data.malfStatus.icon}
                   color="bad"
-                  onClick={() => act(malfStatus.action)}
+                  onClick={() => act(data.malfStatus.action)}
                 >
-                  {malfStatus.content}
+                  {data.malfStatus.content}
                 </Button>
               )}
               <Button icon="lightbulb-o" onClick={() => act('overload')}>
                 Overload
               </Button>
             </>
-          )*/
+          )
         }
       >
         <LabeledList>

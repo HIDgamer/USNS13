@@ -1,78 +1,42 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import {
-  Box,
-  Button,
-  Flex,
-  LabeledList,
-  Section,
-  Slider,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
 
-type ListEntry = { flag: BooleanLike; value: number };
+import { useBackend } from '../backend';
+import { Box, Button, Flex, LabeledList, Section, Slider } from '../components';
+import { Window } from '../layouts';
+
+type ConfigEntry = {
+  flag: BooleanLike;
+  value: number;
+};
+
+type ConfigCategory = Record<string, ConfigEntry>;
 
 type Data = {
   configList: {
-    Damage: {
-      Brute: ListEntry;
-      Burn: ListEntry;
-      Toxin: ListEntry;
-      Oxygen: ListEntry;
-      Genetic: ListEntry;
-      Heart: ListEntry;
-      Liver: ListEntry;
-      Lungs: ListEntry;
-      Kidneys: ListEntry;
-      Brain: ListEntry;
-    };
-    Conditions: {
-      'Vitals Level': ListEntry;
-      Bleeding: ListEntry;
-      Internal: ListEntry;
-      Bloodloss: ListEntry;
-      Fracture: ListEntry;
-      Splinted: ListEntry;
-      'Organ Damage': ListEntry;
-      'Organ Failure': ListEntry;
-      Death: ListEntry;
-      Defibrillation: ListEntry;
-      Concussion: ListEntry;
-      Intoxication: ListEntry;
-      'Foreign Object': ListEntry;
-    };
-    Vitals: {
-      Optimal: ListEntry;
-      Nominal: ListEntry;
-      Low: ListEntry;
-      'Very low': ListEntry;
-      Critical: ListEntry;
-      Emergency: ListEntry;
-    };
+    Damage: ConfigCategory;
+    Conditions: ConfigCategory;
+    Vitals: ConfigCategory;
   };
   inject_logic: string;
   inject_damage_threshold: number;
   inject_amount: number;
 };
 
-export const AcidVest = (_props) => {
+export const AcidVest = () => {
   const { act, data } = useBackend<Data>();
 
-  const { configList, inject_logic, inject_damage_threshold, inject_amount } =
-    data;
-
-  const damageList = configList.Damage;
-  const vitalsList = configList.Vitals;
-  const conditionsList = configList.Conditions;
+  const damageList = data.configList.Damage;
+  const vitalsList = data.configList.Vitals;
+  const conditionsList = data.configList.Conditions;
 
   const injectLogic = data.inject_logic;
   const injectThreshold = data.inject_damage_threshold;
   const injectAmount = data.inject_amount;
 
-  const Ormode = inject_logic === 'OR' ? true : false;
+  const Ormode = injectLogic === 'OR' ? true : false;
 
   return (
-    <Window width={400} height={550} theme="ntos">
+    <Window width={700} height={600} theme="ntos">
       <Window.Content scrollable>
         <Section>
           <LabeledList>

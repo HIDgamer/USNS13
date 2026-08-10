@@ -8,7 +8,6 @@ import { classes } from 'common/react';
 import { useDispatch, useSelector } from 'tgui/backend';
 import { Box, Button, Flex, Tabs } from 'tgui/components';
 
-import { openChatSettings } from '../settings/actions';
 import { selectSettings } from '../settings/selectors';
 import { addChatPage, changeChatPage } from './actions';
 import { selectChatPages, selectCurrentChatPage } from './selectors';
@@ -57,10 +56,8 @@ export const ChatTabs = (props) => {
         <Button
           color="transparent"
           icon="plus"
-          onClick={() => {
-            dispatch(addChatPage());
-            dispatch(openChatSettings());
-          }}
+          tooltip="Add tab"
+          onClick={() => dispatch(addChatPage())}
         />
       </Flex.Item>
     </Flex>

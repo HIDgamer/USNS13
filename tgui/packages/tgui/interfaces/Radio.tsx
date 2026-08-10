@@ -26,6 +26,27 @@ type Data = {
   headset: false;
 };
 
+type RadioChannel = {
+  name: string;
+  status: number;
+  hotkey: string;
+};
+
+type Data = {
+  broadcasting: boolean;
+  listening: boolean;
+  frequency: number;
+  minFrequency: number;
+  maxFrequency: number;
+  freqlock: boolean;
+  channels: RadioChannel[];
+  command: number;
+  useCommand: boolean;
+  subspace: boolean;
+  subspaceSwitchable: boolean;
+  headset: boolean;
+};
+
 export const Radio = (props) => {
   const { act, data } = useBackend<Data>();
   const {

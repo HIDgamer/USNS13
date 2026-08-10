@@ -1,9 +1,12 @@
-import { useBackend } from 'tgui/backend';
-import { Box, Button, ProgressBar, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
-import { createLogger } from 'tgui/logging';
+import { useBackend } from '../backend';
+import { Box, Button, ProgressBar, Section } from '../components';
+import { Window } from '../layouts';
+import { createLogger } from '../logging';
 
-type Data = { temp: number; alt: number };
+type Data = {
+  temp: number;
+  alt: number;
+};
 
 export const AltitudeControlConsole = () => {
   const { act, data } = useBackend<Data>();

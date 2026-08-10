@@ -1,21 +1,24 @@
 import { classes } from 'common/react';
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Section, Stack, Tabs } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+
+import { useBackend } from '../backend';
+import { Box, Button, Section, Stack, Tabs } from '../components';
+import { Window } from '../layouts';
 
 export const INFINITE_BUILD_AMOUNT = -1;
 
+type Construction = {
+  name: string;
+  desc: string;
+  image: string;
+  plasma_cost: number;
+  max_per_xeno: number;
+  id: string;
+};
+
 type Data = {
-  constructions: {
-    name: string;
-    desc: string;
-    image: string;
-    plasma_cost: number;
-    max_per_xeno: number;
-    id: string;
-  }[];
-  selected_resin: string | null;
+  constructions: Construction[];
+  selected_resin: string;
 };
 
 export const ChooseResin = (props) => {
@@ -30,7 +33,7 @@ export const ChooseResin = (props) => {
   return (
     <Window
       width={350}
-      height={15 + constructions.length * heightScale}
+      height={Math.min(15 + constructions.length * heightScale, 600)}
       theme="hive_status"
     >
       <Window.Content>
@@ -70,6 +73,10 @@ export const ChooseResin = (props) => {
                     />
                   </Stack.Item>
                   <Stack.Item grow>
+                    {/* NOTE: original .jsx had `<Box fontSiz>` -- "fontSiz" is
+                        not a real Box prop (typo for fontSize), so it never
+                        did anything; dropped since it doesn't type-check.
+                        See report. */}
                     <Box>
                       {val.name}
                       {val.max_per_xeno !== INFINITE_BUILD_AMOUNT &&

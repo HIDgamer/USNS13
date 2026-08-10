@@ -9,6 +9,13 @@ type Data = {
   max_time: number;
 };
 
+type Data = {
+  max_time: number;
+  min_time: number;
+  current_time: number;
+  is_timing: boolean;
+};
+
 export const Timer = (props) => {
   const { act, data } = useBackend<Data>();
   const { max_time, min_time } = data;

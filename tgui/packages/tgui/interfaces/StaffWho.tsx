@@ -1,35 +1,49 @@
-import { useBackend } from 'tgui/backend';
-import { Button, Collapsible, Stack } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { ReactNode } from 'react';
+
+import { useBackend } from '../backend';
+import { Button, Collapsible, Stack } from '../components';
+import { Window } from '../layouts';
 
 type AdminPayload = {
-  special_color: string;
-  special_text: string;
+  readonly category: string;
+  readonly special_color?: string;
+  readonly special_text?: string;
+  readonly text: string;
+  readonly color?: string;
+};
+
+type Entry<T> = Record<string, T[]>;
+
+type CategoryInfo = {
   category: string;
+  category_color: string;
 };
 
 type Data = {
-  base_data: {
-    total_players: Record<string, { text: string; ckey_color: String }>;
-    categories: Record<string, string>;
-    total_admins: Record<string, AdminPayload>;
+  base_data?: {
+    categories: CategoryInfo[];
+    total_admins: Entry<AdminPayload>[];
   };
-  admin_additional: { total_admins: AdminPayload };
-  admin_stealthed_additional: { total_admins: AdminPayload };
+  admin_additional?: {
+    total_admins: Entry<AdminPayload>[];
+  };
+  admin_stealthed_additional?: {
+    total_admins: Entry<AdminPayload>[];
+  };
 };
 
-export const StaffWho = (props, context) => {
+export const StaffWho = () => {
   const { data } = useBackend<Data>();
   const { base_data, admin_additional, admin_stealthed_additional } = data;
 
   const total_admins = mergeArrays(
-    base_data.total_admins,
+    base_data?.total_admins,
     admin_additional?.total_admins,
     admin_stealthed_additional?.total_admins,
   );
 
   return (
-    <Window width={600} height={600}>
+    <Window resizable width={600} height={600}>
       <Window.Content scrollable>
         {base_data ? (
           <Stack fill vertical>
@@ -46,7 +60,10 @@ export const StaffWho = (props, context) => {
   );
 };
 
-const FilterCategories = (props, context) => {
+const FilterCategories = (props: {
+  categories: CategoryInfo[];
+  total_admins: Entry<AdminPayload>[];
+}) => {
   const { categories, total_admins } = props;
 
   return categories.map((category) => {
@@ -63,7 +80,13 @@ const FilterCategories = (props, context) => {
   });
 };
 
-const StaffWhoCollapsible = (props, context) => {
+type StaffWhoCollapsibleProps = {
+  readonly title: string;
+  readonly color?: string;
+  readonly children: ReactNode;
+};
+
+const StaffWhoCollapsible = (props: StaffWhoCollapsibleProps) => {
   const { title, color, children } = props;
   return (
     <Collapsible title={title} color={color} open>
@@ -72,7 +95,10 @@ const StaffWhoCollapsible = (props, context) => {
   );
 };
 
-const CategoryDropDown = (props, context) => {
+const CategoryDropDown = (props: {
+  readonly category: CategoryInfo;
+  readonly category_admins: Entry<AdminPayload>[];
+}) => {
   const { category, category_admins } = props;
   return (
     <StaffWhoCollapsible
@@ -84,7 +110,7 @@ const CategoryDropDown = (props, context) => {
   );
 };
 
-const FilterAdmins = (props, context) => {
+const FilterAdmins = (props: { category_admins: Entry<AdminPayload>[] }) => {
   const { category_admins } = props;
 
   return category_admins.map((adminObj) => {
@@ -93,7 +119,7 @@ const FilterAdmins = (props, context) => {
   });
 };
 
-const GetAdminInfo = (props, context) => {
+const GetAdminInfo = (props: AdminPayload & { readonly ckey: string }) => {
   const { ckey, special_color, special_text, text, color } = props;
   return (
     <Button
@@ -119,7 +145,7 @@ const GetAdminInfo = (props, context) => {
   );
 };
 
-const isMatch = (adminObj, search) => {
+const isMatch = (adminObj: Entry<AdminPayload>, search: string) => {
   if (!search) {
     return true;
   }
@@ -132,7 +158,7 @@ const isMatch = (adminObj, search) => {
       return;
     }
     Object.keys(param).forEach((key) => {
-      if (param[key] === search) {
+      if (param[key as keyof AdminPayload] === search) {
         found = true;
         return;
       }
@@ -142,8 +168,10 @@ const isMatch = (adminObj, search) => {
 };
 
 // Krill me please
-const mergeArrays = (...arrays) => {
-  const mergedObject = {};
+const mergeArrays = (
+  ...arrays: (Entry<AdminPayload>[] | undefined)[]
+): Entry<AdminPayload>[] => {
+  const mergedObject: Record<string, AdminPayload[]> = {};
 
   arrays.forEach((array) => {
     if (!array) return;

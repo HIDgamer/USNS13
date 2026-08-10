@@ -243,8 +243,16 @@ class ChatRenderer {
       const highlightWholeMessage = setting.highlightWholeMessage;
       const matchWord = setting.matchWord;
       const matchCase = setting.matchCase;
+      // This allow-list is for literal *word* entries only — it deliberately excludes real regex
+      // syntax (. * + ( ) { } | ?) because a word entry is meant to be safe literal text, not a
+      // pattern. It used to also gate /regex/-wrapped entries, which meant almost no real regex
+      // could ever pass through — the try/catch below (which already exists to fall back to no
+      // highlighting on genuinely malformed regex) is the actual safety net for regex mode, so
+      // regex entries are validated there instead of against a character set built for words.
       const allowedRegex = /^[a-zа-яё0-9_\-$/^[\s\]\\]+$/gi;
       const regexEscapeCharacters = /[!#$%^&*)(+=.<>{}[\]:;'"|~`_\-\\/]/g;
+      const isRegexEntry = (str) =>
+        str.length > 2 && str.charAt(0) === '/' && str.charAt(str.length - 1) === '/';
       const lines = String(text)
         .split(',')
         .map((str) => str.trim())
@@ -253,10 +261,11 @@ class ChatRenderer {
             // Must be longer than one character
             str &&
             str.length > 1 &&
-            // Must be alphanumeric (with some punctuation)
-            allowedRegex.test(str) &&
-            // Reset lastIndex so it does not mess up the next word
-            ((allowedRegex.lastIndex = 0) || true),
+            (isRegexEntry(str) ||
+              // Word entries must be a safe literal character set.
+              (allowedRegex.test(str) &&
+                // Reset lastIndex so it does not mess up the next word
+                ((allowedRegex.lastIndex = 0) || true))),
         );
       let highlightWords;
       let highlightRegex;

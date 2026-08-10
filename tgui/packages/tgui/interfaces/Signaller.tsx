@@ -12,6 +12,15 @@ type Data = {
   current_signal: number;
 };
 
+type Data = {
+  max_freq: number;
+  min_freq: number;
+  max_signal: number;
+  min_signal: number;
+  current_freq: number;
+  current_signal: number;
+};
+
 export const Signaller = (props) => {
   const { act, data } = useBackend<Data>();
   const { max_freq, min_freq, max_signal, min_signal } = data;

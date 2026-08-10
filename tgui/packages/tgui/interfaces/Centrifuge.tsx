@@ -9,6 +9,13 @@ type Data = {
   turing: string | null;
 };
 
+type Data = {
+  mode: boolean;
+  input_source: number;
+  label: string;
+  turing: boolean;
+};
+
 export const Centrifuge = () => {
   const { act, data } = useBackend<Data>();
 
@@ -59,7 +66,6 @@ export const Centrifuge = () => {
                 <Button
                   icon="link"
                   fluid
-                  disabled={!data.turing}
                   onClick={() => act('attempt_connection')}
                 >
                   Connect a Turing Dispenser

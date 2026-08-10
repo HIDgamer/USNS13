@@ -1,12 +1,20 @@
 import { classes } from 'common/react';
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Section, Stack, Tabs } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+
+import { useBackend } from '../backend';
+import { Box, Button, Section, Stack, Tabs } from '../components';
+import { Window } from '../layouts';
+
+type Fruit = {
+  name: string;
+  desc: string;
+  image: string;
+  id: string;
+};
 
 type Data = {
-  fruits: { name: string; desc: string; image: string; id: string }[];
-  selected_fruit: string | null;
+  fruits: Fruit[];
+  selected_fruit: string;
 };
 
 export const ChooseFruit = (props) => {
@@ -21,7 +29,7 @@ export const ChooseFruit = (props) => {
   return (
     <Window
       width={350}
-      height={15 + fruits.length * heightScale}
+      height={Math.min(15 + fruits.length * heightScale, 600)}
       theme="hive_status"
     >
       <Window.Content>
@@ -61,6 +69,10 @@ export const ChooseFruit = (props) => {
                     />
                   </Stack.Item>
                   <Stack.Item grow>
+                    {/* NOTE: original .jsx had `<Box fontSiz>` -- "fontSiz" is
+                        not a real Box prop (typo for fontSize), so it never
+                        did anything; dropped since it doesn't type-check.
+                        See report. */}
                     <Box>{val.name}</Box>
                   </Stack.Item>
                 </Stack>

@@ -1,11 +1,22 @@
-import { Placement } from '@popperjs/core';
-import { Component, useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Dropdown, Flex, Input, Section } from 'tgui/components';
-import { globalEvents } from 'tgui/events';
-import { Window } from 'tgui/layouts';
+import { Component, ComponentProps, useState } from 'react';
 
-import { ButtonProps } from './MfdPanels/types';
+import { useBackend } from '../backend';
+import { Box, Button, Dropdown, Flex, Input, Section } from '../components';
+import { globalEvents } from '../events';
+import { Window } from '../layouts';
+
+type Keybind = {
+  name: string;
+  full_name: string;
+  hotkey: string[];
+  classic: string[];
+};
+
+type Data = {
+  player_keybinds: Record<string, string[]>;
+  glob_keybinds: Record<string, Keybind[]>;
+  byond_keymap: Record<string, string>;
+};
 
 const KEY_MODS = {
   SHIFT: true,
@@ -27,23 +38,10 @@ const KEY_CODE_TO_BYOND = {
   UP: 'North',
 };
 
-const getAllKeybinds = (glob_keybinds) => {
-  const all_keybinds = new Array();
+const getAllKeybinds = (glob_keybinds: Record<string, Keybind[]>) => {
+  const all_keybinds: Keybind[] = new Array();
   Object.keys(glob_keybinds).map((x) => all_keybinds.push(...glob_keybinds[x]));
   return all_keybinds;
-};
-
-type Keybind = {
-  name: string;
-  full_name: string;
-  hotkey_keys: string[];
-  classic: string[];
-};
-
-type Data = {
-  player_keybinds: Record<string, string>;
-  glob_keybinds: Record<string, Keybind[]>;
-  byond_keymap: Record<string, string>;
 };
 
 export const KeyBinds = (props) => {
@@ -63,7 +61,7 @@ export const KeyBinds = (props) => {
   );
 
   return (
-    <Window width={400} height={500}>
+    <Window width={480} height={550} resizable>
       <Window.Content scrollable>
         <Flex direction="column">
           <Flex.Item>
@@ -140,7 +138,7 @@ export const KeyBinds = (props) => {
                     <Section title={category}>
                       <Flex direction="column">
                         {glob_keybinds[category].map((keybind) => (
-                          <Flex.Item key={keybind}>
+                          <Flex.Item key={keybind.name}>
                             <KeybindElement keybind={keybind} />
                             <Box
                               backgroundColor="rgba(40, 40, 40, 255)"
@@ -172,12 +170,14 @@ export const KeyBinds = (props) => {
   );
 };
 
-const KeybindsDropdown = (props: {
+type KeybindsDropdownProps = {
   readonly selectedTab: string;
-  readonly setSelectedTab: (value: React.SetStateAction<string>) => void;
+  readonly setSelectedTab: (value: string) => void;
   readonly searchTerm: string;
-}) => {
-  const { act, data } = useBackend<Data>();
+};
+
+const KeybindsDropdown = (props: KeybindsDropdownProps) => {
+  const { data } = useBackend<Data>();
   const { glob_keybinds } = data;
   const { selectedTab, setSelectedTab, searchTerm } = props;
 
@@ -189,13 +189,17 @@ const KeybindsDropdown = (props: {
       menuWidth="360px"
       selected={selectedTab}
       options={dropdownOptions}
-      disabled={!!searchTerm}
+      disabled={searchTerm.length}
       onSelected={(value) => setSelectedTab(value)}
     />
   );
 };
 
-export const KeybindElement = (props: { readonly keybind: Keybind }) => {
+type KeybindElementProps = {
+  readonly keybind: Keybind;
+};
+
+export const KeybindElement = (props: KeybindElementProps) => {
   const { act, data } = useBackend<Data>();
   const { keybind } = props;
   const { player_keybinds } = data;
@@ -230,7 +234,7 @@ export const KeybindElement = (props: { readonly keybind: Keybind }) => {
                   const keys = keysDown.filter((k) => !KEY_MODS[k]);
                   if (keys.length === 0) {
                     if (mods.length >= 0) {
-                      keys.push(mods.pop());
+                      keys.push(mods.pop() as string);
                     }
                   }
                   act('set_keybind', {
@@ -254,7 +258,7 @@ export const KeybindElement = (props: { readonly keybind: Keybind }) => {
             const keys = keysDown.filter((k) => !KEY_MODS[k]);
             if (keys.length === 0) {
               if (mods.length >= 0) {
-                keys.push(mods.pop());
+                keys.push(mods.pop() as string);
               } else return;
             }
             act('set_keybind', {
@@ -279,20 +283,26 @@ export const KeybindElement = (props: { readonly keybind: Keybind }) => {
   );
 };
 
-type KeyBindButtonProps = ButtonProps & {
-  readonly onFinish: (keysDown: any) => void;
-} & Partial<{
-    color: string;
-    icon: string;
-    tooltip: string;
-    tooltipPosition: Placement;
-    content: string;
-  }>;
+type ButtonKeybindProps = Omit<
+  ComponentProps<typeof Button>,
+  'content' | 'onClick'
+> & {
+  readonly content?: string;
+  readonly onFinish: (keysDown: string[]) => void;
+};
 
-export class ButtonKeybind extends Component<KeyBindButtonProps> {
-  state: { focused: boolean; keysDown: Record<string, boolean> };
-  timer: NodeJS.Timeout;
-  constructor(props) {
+type ButtonKeybindState = {
+  focused: boolean;
+  keysDown: Record<string, boolean>;
+};
+
+export class ButtonKeybind extends Component<
+  ButtonKeybindProps,
+  ButtonKeybindState
+> {
+  timer: ReturnType<typeof setInterval> | undefined;
+
+  constructor(props: ButtonKeybindProps) {
     super(props);
     this.state = {
       focused: false,
@@ -313,7 +323,7 @@ export class ButtonKeybind extends Component<KeyBindButtonProps> {
     );
 
     onFinish(listOfKeys);
-    (document.activeElement as HTMLElement).blur();
+    (document.activeElement as HTMLElement)?.blur();
     clearInterval(this.timer);
   }
 
@@ -345,7 +355,7 @@ export class ButtonKeybind extends Component<KeyBindButtonProps> {
     });
   }
 
-  finishTimerStart(time) {
+  finishTimerStart(time: number) {
     clearInterval(this.timer);
     this.timer = setInterval(() => this.doFinish(), time);
   }

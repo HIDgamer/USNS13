@@ -29,6 +29,22 @@ type Data = {
   disabled: BooleanLike;
 };
 
+type Data = {
+  hefuel: number;
+  incfuel: number;
+  clusterfuel: number;
+  linkedcannon: unknown;
+  linkedtray: unknown;
+  loadedtray: unknown;
+  chamberedtray: unknown;
+  warhead: string | null;
+  fuel: number;
+  worldtime: number;
+  nextchambertime: number;
+  chamber_cooldown: number;
+  disabled: boolean;
+};
+
 export const OrbitalCannonConsole = () => {
   const { act, data } = useBackend<Data>();
 

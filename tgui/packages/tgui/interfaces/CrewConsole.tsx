@@ -7,104 +7,78 @@ import { Box, Button, Icon, Input, Section, Stack } from 'tgui/components';
 import { COLORS } from 'tgui/constants';
 import { Window } from 'tgui/layouts';
 
-// Map ijob ranges to department groups
-const DEPT_GROUPS = [
-  { key: 'all', label: 'ALL', color: '#888', min: -Infinity, max: Infinity },
-  {
-    key: 'command',
-    label: 'CMD',
-    color: COLORS.shipDeps.command,
-    min: 0,
-    max: 29,
-  },
-  {
-    key: 'security',
-    label: 'SEC',
-    color: COLORS.shipDeps.security,
-    min: 30,
-    max: 39,
-  },
-  {
-    key: 'medical',
-    label: 'MED',
-    color: COLORS.shipDeps.medsci,
-    min: 40,
-    max: 49,
-  },
-  {
-    key: 'engineering',
-    label: 'ENG',
-    color: COLORS.shipDeps.engineering,
-    min: 50,
-    max: 59,
-  },
-  {
-    key: 'cargo',
-    label: 'REQ',
-    color: COLORS.shipDeps.cargo,
-    min: 60,
-    max: 69,
-  },
-  {
-    key: 'alpha',
-    label: 'ALPHA',
-    color: COLORS.shipDeps.alpha,
-    min: 70,
-    max: 79,
-  },
-  {
-    key: 'bravo',
-    label: 'BRAVO',
-    color: COLORS.shipDeps.bravo,
-    min: 80,
-    max: 89,
-  },
-  {
-    key: 'charlie',
-    label: 'CHARLIE',
-    color: COLORS.shipDeps.charlie,
-    min: 90,
-    max: 99,
-  },
-  {
-    key: 'delta',
-    label: 'DELTA',
-    color: COLORS.shipDeps.delta,
-    min: 100,
-    max: 109,
-  },
-  {
-    key: 'echo',
-    label: 'ECHO',
-    color: COLORS.shipDeps.echo,
-    min: 110,
-    max: 119,
-  },
-  {
-    key: 'foxtrot',
-    label: 'FTX',
-    color: COLORS.shipDeps.foxtrot,
-    min: 120,
-    max: 129,
-  },
-  {
-    key: 'raiders',
-    label: 'RAID',
-    color: COLORS.shipDeps.raiders,
-    min: 130,
-    max: 139,
-  },
-  { key: 'other', label: 'OTH', color: '#777', min: 140, max: 9998 },
+type DeptGroup = {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  color: string;
+};
+
+type Sensor = {
+  ref: string;
+  name: string;
+  ijob: number;
+  assignment?: string;
+  life_status?: boolean;
+  stat?: number;
+  oxydam?: number;
+  toxdam?: number;
+  burndam?: number;
+  brutedam?: number;
+  side?: string;
+  area?: string;
+  can_track: boolean;
+};
+
+type Data = {
+  sensors: Sensor[];
+  link_allowed: boolean;
+  department_groups: Omit<DeptGroup, 'color'>[];
+  sensors_age_s: number;
+};
+
+type StatusInfo = {
+  overlay: string | null;
+  label: string;
+  icon: string;
+  pulse: boolean;
+};
+
+// Fallback color for any department key the frontend doesn't have a
+// dedicated color for (e.g. non-marine factions' keys).
+const DEFAULT_DEPT_COLOR = '#777';
+const ALL_TAB: DeptGroup = { key: 'all', label: 'ALL', min: 0, max: 0, color: '#888' };
+const UNKNOWN_DEPT: DeptGroup = {
+  key: 'unknown',
+  label: 'UNK',
+  min: 0,
+  max: 0,
+  color: DEFAULT_DEPT_COLOR,
+};
+
+// department_groups (key/label/min/max ijob ranges) comes from the server —
+// see /datum/crewmonitor/get_department_groups() — since the ranges are
+// faction-specific and DM already owns that mapping. Colors stay client-side
+// since they're a display concern only.
+const buildDeptGroups = (
+  departmentGroups: Omit<DeptGroup, 'color'>[] = [],
+): DeptGroup[] => [
+  ALL_TAB,
+  ...departmentGroups.map((group) => ({
+    ...group,
+    color: COLORS.shipDeps[group.key] || DEFAULT_DEPT_COLOR,
+  })),
 ];
 
-const getDeptForJob = (ijob) =>
-  DEPT_GROUPS.find((d) => d.key !== 'all' && ijob >= d.min && ijob <= d.max) ||
-  DEPT_GROUPS[DEPT_GROUPS.length - 1];
+const getDeptForJob = (ijob: number, deptGroups: DeptGroup[]): DeptGroup =>
+  deptGroups.find((d) => d.key !== 'all' && ijob >= d.min && ijob <= d.max) ||
+  UNKNOWN_DEPT;
 
-const getDamageSum = (s) =>
+const getDamageSum = (s: Sensor) =>
   (s.oxydam || 0) + (s.toxdam || 0) + (s.burndam || 0) + (s.brutedam || 0);
 
-const getStatusInfo = (sensor) => {
+const getStatusInfo = (sensor: Sensor): StatusInfo => {
   const dmg = getDamageSum(sensor);
   const dead =
     sensor.stat === 2 ||
@@ -155,8 +129,13 @@ const getStatusInfo = (sensor) => {
   return { overlay: null, label: 'OK', icon: 'heart', pulse: false };
 };
 
-const Portrait = ({ ijob, statusInfo }) => {
-  const dept = getDeptForJob(ijob);
+const Portrait = (props: {
+  readonly ijob: number;
+  readonly statusInfo: StatusInfo;
+  readonly deptGroups: DeptGroup[];
+}) => {
+  const { ijob, statusInfo, deptGroups } = props;
+  const dept = getDeptForJob(ijob, deptGroups);
   const isDead = statusInfo.label === 'DEAD' || statusInfo.label === 'PERM';
   return (
     <Box
@@ -201,7 +180,13 @@ const Portrait = ({ ijob, statusInfo }) => {
   );
 };
 
-const HealthBar = ({ oxydam, toxdam, burndam, brutedam }) => {
+const HealthBar = (props: {
+  readonly oxydam?: number;
+  readonly toxdam?: number;
+  readonly burndam?: number;
+  readonly brutedam?: number;
+}) => {
+  const { oxydam, toxdam, burndam, brutedam } = props;
   if (
     oxydam === undefined &&
     toxdam === undefined &&
@@ -210,7 +195,10 @@ const HealthBar = ({ oxydam, toxdam, burndam, brutedam }) => {
   ) {
     return null;
   }
-  const total = Math.min(oxydam + toxdam + burndam + brutedam, 400);
+  const total = Math.min(
+    (oxydam ?? 0) + (toxdam ?? 0) + (burndam ?? 0) + (brutedam ?? 0),
+    400,
+  );
   const pct = total / 400;
   const barColor =
     pct < 0.25
@@ -244,7 +232,13 @@ const HealthBar = ({ oxydam, toxdam, burndam, brutedam }) => {
   );
 };
 
-const VitalNums = ({ oxydam, toxdam, burndam, brutedam }) => {
+const VitalNums = (props: {
+  readonly oxydam?: number;
+  readonly toxdam?: number;
+  readonly burndam?: number;
+  readonly brutedam?: number;
+}) => {
+  const { oxydam, toxdam, burndam, brutedam } = props;
   if (oxydam === undefined) return null;
   return (
     <Box style={{ fontSize: '0.65rem', lineHeight: 1.3 }}>
@@ -274,9 +268,10 @@ const VitalNums = ({ oxydam, toxdam, burndam, brutedam }) => {
   );
 };
 
-const CrewRow = ({ sensor, link_allowed, act }) => {
+const CrewRow = (props: { readonly sensor: Sensor; readonly deptGroups: DeptGroup[] }) => {
+  const { sensor, deptGroups } = props;
   const statusInfo = getStatusInfo(sensor);
-  const dept = getDeptForJob(sensor.ijob);
+  const dept = getDeptForJob(sensor.ijob, deptGroups);
   const isHead = sensor.ijob % 10 === 0 && sensor.ijob !== 999;
 
   return (
@@ -297,7 +292,7 @@ const CrewRow = ({ sensor, link_allowed, act }) => {
           : 'none',
       }}
     >
-      <Portrait ijob={sensor.ijob} statusInfo={statusInfo} />
+      <Portrait ijob={sensor.ijob} statusInfo={statusInfo} deptGroups={deptGroups} />
 
       {/* Name & assignment */}
       <Box style={{ flex: 1, minWidth: 0 }}>
@@ -389,17 +384,6 @@ const CrewRow = ({ sensor, link_allowed, act }) => {
           <Icon name="question" style={{ color: 'rgba(255,255,255,0.3)' }} />
         )}
       </Box>
-
-      {/* Track button */}
-      {!!link_allowed && (
-        <Button
-          icon="crosshairs"
-          disabled={!sensor.can_track}
-          tooltip="Track"
-          onClick={() => act('select_person', { name: sensor.name })}
-          style={{ flexShrink: 0 }}
-        />
-      )}
     </Box>
   );
 };
@@ -422,31 +406,57 @@ type SensorData = {
 type Data = { sensors: SensorData[]; link_allowed: number };
 
 export const CrewConsole = () => {
-  const { act, data } = useBackend();
-  const { sensors = [], link_allowed } = data;
+  const { data } = useBackend<Data>();
+  const {
+    sensors = [],
+    department_groups,
+    sensors_age_s = 0,
+  } = data;
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
-  const sorted = useMemo(() => sortBy(sensors, (s) => s.ijob), [sensors]);
+  const deptGroups = useMemo(
+    () => buildDeptGroups(department_groups),
+    [department_groups],
+  );
+
+  const sorted = useMemo(() => sortBy(sensors, (s: Sensor) => s.ijob), [sensors]);
 
   // Build tab list: only show tabs with entries
   const availableTabs = useMemo(() => {
-    const present = new Set(sorted.map((s) => getDeptForJob(s.ijob).key));
-    return DEPT_GROUPS.filter((g) => g.key === 'all' || present.has(g.key));
-  }, [sorted]);
+    const present = new Set(
+      sorted.map((s) => getDeptForJob(s.ijob, deptGroups).key),
+    );
+    return deptGroups.filter((g) => g.key === 'all' || present.has(g.key));
+  }, [sorted, deptGroups]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return sorted.filter((s) => {
       const inTab =
-        activeTab === 'all' || getDeptForJob(s.ijob).key === activeTab;
+        activeTab === 'all' ||
+        getDeptForJob(s.ijob, deptGroups).key === activeTab;
       const inSearch =
         !q ||
         (s.name || '').toLowerCase().includes(q) ||
         (s.assignment || '').toLowerCase().includes(q);
       return inTab && inSearch;
     });
-  }, [sorted, activeTab, search]);
+  }, [sorted, activeTab, search, deptGroups]);
+
+  const activeTabLabel = deptGroups.find((g) => g.key === activeTab)?.label;
+  const emptyMessage = (() => {
+    if (sorted.length === 0) {
+      return 'No crew detected.';
+    }
+    if (search && activeTab !== 'all') {
+      return `No crew matching "${search}" in ${activeTabLabel}.`;
+    }
+    if (search) {
+      return `No crew matching "${search}".`;
+    }
+    return `No crew in ${activeTabLabel}.`;
+  })();
 
   return (
     <Window title="Crew Monitor" width={680} height={580}>
@@ -536,9 +546,6 @@ export const CrewConsole = () => {
               </Box>
               <Box style={{ width: '5rem', flexShrink: 0 }}>Vitals</Box>
               <Box style={{ width: '7rem', flexShrink: 0 }}>Location</Box>
-              {!!link_allowed && (
-                <Box style={{ width: '2.5rem', flexShrink: 0 }}>Track</Box>
-              )}
             </Box>
           </Stack.Item>
 
@@ -554,16 +561,11 @@ export const CrewConsole = () => {
                     fontStyle: 'italic',
                   }}
                 >
-                  No crew found
+                  {emptyMessage}
                 </Box>
               ) : (
                 filtered.map((sensor) => (
-                  <CrewRow
-                    key={sensor.ref}
-                    sensor={sensor}
-                    link_allowed={link_allowed}
-                    act={act}
-                  />
+                  <CrewRow key={sensor.ref} sensor={sensor} deptGroups={deptGroups} />
                 ))
               )}
             </Section>
@@ -573,14 +575,28 @@ export const CrewConsole = () => {
           <Stack.Item>
             <Box
               style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 fontSize: '0.7rem',
                 color: 'rgba(255,255,255,0.35)',
-                textAlign: 'right',
                 borderTop: '1px solid rgba(255,255,255,0.08)',
                 paddingTop: '4px',
               }}
             >
-              {filtered.length} / {sorted.length} crew
+              <Box
+                style={{
+                  color:
+                    sensors_age_s > 20
+                      ? '#ffaa44'
+                      : 'rgba(255,255,255,0.35)',
+                }}
+                title="Sensor data refreshes periodically, not live"
+              >
+                Updated {sensors_age_s}s ago
+              </Box>
+              <Box>
+                {filtered.length} / {sorted.length} crew
+              </Box>
             </Box>
           </Stack.Item>
         </Stack>

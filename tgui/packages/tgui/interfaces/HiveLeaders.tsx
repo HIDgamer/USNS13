@@ -1,18 +1,31 @@
 import { map } from 'common/collections';
-import { useBackend } from 'tgui/backend';
-import { Icon, Section, Table } from 'tgui/components';
-import { Window } from 'tgui/layouts';
 
-type HiveEntry = { designation: string; caste_type: string };
+import { useBackend } from '../backend';
+import { Icon, Section, Table } from '../components';
+import { Window } from '../layouts';
 
-type Data = { queens: HiveEntry[]; leaders: HiveEntry[] };
+type HiveMember = {
+  designation: string;
+  caste_type: string;
+};
+
+type Data = {
+  queens: HiveMember[];
+  leaders: HiveMember[];
+};
 
 export const HiveLeaders = (props) => {
   const { act, data } = useBackend<Data>();
   const { queens, leaders } = data;
   return (
-    <Window title={'Hive Leaders'} theme="hive_status" width={250} height={350}>
-      <Window.Content>
+    <Window
+      title={'Hive Leaders'}
+      theme="hive_status"
+      resizable
+      width={250}
+      height={350}
+    >
+      <Window.Content scrollable>
         <Section>
           <Table className="xeno_list">
             <Table.Row header className="xenoListRow">
@@ -27,7 +40,7 @@ export const HiveLeaders = (props) => {
               height="25px"
               lineHeight="5px"
             >
-              <Table.Cell colSpan={3} p={1}>
+              <Table.Cell colspan={3} p={1}>
                 Queen
               </Table.Cell>
             </Table.Row>
@@ -50,7 +63,7 @@ export const HiveLeaders = (props) => {
               height="25px"
               lineHeight="5px"
             >
-              <Table.Cell colSpan={3} p={1}>
+              <Table.Cell colspan={3} p={1}>
                 Leaders
               </Table.Cell>
             </Table.Row>

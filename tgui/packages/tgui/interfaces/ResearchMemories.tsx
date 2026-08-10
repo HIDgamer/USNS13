@@ -1,21 +1,35 @@
 import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
-import { Box, Flex, LabeledList, Section, Tabs } from 'tgui/components';
-import { Window } from 'tgui/layouts';
 
-type ClueData = { text: string };
+import { useBackend } from '../backend';
+import { Box, Flex, LabeledList, Section, Tabs } from '../components';
+import { Window } from '../layouts';
+
+type Clue = {
+  text: string;
+};
+
+type ClueCategory = {
+  name: string;
+  icon: string;
+  clues: Clue[];
+};
+
+type Objective = {
+  label: string;
+  content_credits: string;
+  content: string;
+  content_color: string;
+};
 
 type Data = {
-  research_credits: number;
   clearance: string;
-  objectives: {
-    label: string;
-    content_credits: string;
-    content: string;
-    content_color: string;
-  }[];
-  clue_categories: { name: string; icon: string; clues: ClueData[] }[];
-  theme: undefined; // Seems to be missing?
+  research_credits: number;
+  // NOTE: the backend (research_objective_memory_interface/ui_data) never
+  // sends a "theme" field, so this is always undefined and the Window below
+  // always falls back to the default theme; see report.
+  theme?: string;
+  clue_categories: ClueCategory[];
+  objectives: Objective[];
 };
 
 export const ResearchMemories = () => {
@@ -59,7 +73,7 @@ export const ResearchMemories = () => {
   );
 };
 
-const CluesAdvanced = (props: { readonly clues: ClueData[] }) => {
+const CluesAdvanced = (props: { readonly clues: Clue[] }) => {
   const { clues } = props;
 
   return (

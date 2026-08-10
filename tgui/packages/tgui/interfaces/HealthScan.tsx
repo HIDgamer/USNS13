@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { BooleanLike } from 'common/react';
+import { storage } from 'common/storage';
+import { useEffect, useState } from 'react';
 
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
@@ -14,87 +15,100 @@ import {
   ProgressBar,
   Section,
   Stack,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
-type LimbData = {
+type ChemicalEntry = {
+  name: string;
+  amount: number;
+  od: BooleanLike;
+  dangerous: BooleanLike;
+  color: string;
+};
+
+type LimbEntry = {
   name: string;
   brute: number;
   burn: number;
   bandaged: BooleanLike;
   salved: BooleanLike;
   missing: BooleanLike;
+  limb_status: string | null;
   bleeding: BooleanLike;
   implant: BooleanLike;
   internal_bleeding: BooleanLike;
-  limb_status?: string;
   limb_splint?: string;
   limb_type?: string;
-  open_incision: BooleanLike | string;
-  open_zone_incision: string;
+  open_incision?: BooleanLike;
+  open_zone_incision?: string;
+  // Computed client-side in ScannerLimbs before render.
+  unbandaged?: boolean;
+  unsalved?: boolean;
 };
 
-type HumanData = {
-  has_blood: BooleanLike;
-  species?: string;
-  permadead: BooleanLike;
-  lung_ruptured: BooleanLike;
-  heart_broken: BooleanLike;
-  limb_data_lists?: Record<string, LimbData>;
-  limbs_damaged: number;
-  internal_bleeding: BooleanLike;
-  body_temperature: string;
-  pulse: string;
-  implants: number;
-  core_fracture: BooleanLike;
-  damaged_organs: {
-    name: string;
-    damage: number;
-    status: string;
-    robotic: BooleanLike;
-  }[];
-  advice: { advice: string; icon: string; color: string }[] | null;
-  diseases:
-    | {
-        name: string;
-        form: string;
-        type: string | null;
-        stage: number;
-        max_stage: number;
-        cure: string | null;
-      }[]
-    | null;
-  ssd: string | null;
+type OrganEntry = {
+  name: string;
+  damage: number;
+  status: string;
+  robotic: BooleanLike;
+};
+
+type AdviceEntry = {
+  advice: string;
+  icon: string;
+  color: string;
+};
+
+type DiseaseEntry = {
+  name: string;
+  form: string;
+  type: string;
+  stage: number;
+  max_stage: number;
+  cure: string;
 };
 
 type Data = {
   patient: string;
+  detail_level: number;
+  species?: string;
+  has_chemicals: number;
+  diseases: DiseaseEntry[] | null;
+  advice: AdviceEntry[] | null;
+  limbs_damaged: number;
+  limb_data_lists?: Record<string, LimbEntry>;
+  damaged_organs?: OrganEntry[];
+  ui_mode: BooleanLike;
   dead: BooleanLike;
+  permadead?: BooleanLike;
   health: number;
+
   total_brute: number;
   total_burn: number;
   toxin: number;
   oxy: number;
   clone: number;
-  blood_type: string;
-  blood_amount: number;
-  holocard: string | null;
-  hugged: string | null;
-  ui_mode: number;
-  detail_level: number;
-  has_unknown_chemicals: BooleanLike;
-  has_chemicals: number;
-  chemicals_lists: {
-    name: string;
-    amount: number;
-    od: BooleanLike;
-    dangerous: BooleanLike;
-    color: string;
-  }[];
-} & Partial<HumanData>;
 
-export const HealthScan = (props) => {
-  const { act, data } = useBackend<Data>();
+  has_unknown_chemicals: BooleanLike;
+  chemicals_lists: Record<string, ChemicalEntry>;
+
+  has_blood?: BooleanLike;
+  blood_type?: string;
+  blood_amount?: number;
+  body_temperature?: string;
+  pulse?: string;
+  implants?: number;
+  core_fracture?: BooleanLike;
+  lung_ruptured?: BooleanLike;
+  hugged: BooleanLike;
+  heart_broken?: BooleanLike;
+  holocard: string | null;
+
+  ssd: string | null;
+};
+
+export const HealthScan = () => {
+  const { data } = useBackend<Data>();
   const {
     patient,
     detail_level,
@@ -111,6 +125,18 @@ export const HealthScan = (props) => {
   } = data;
 
   const [colorEnabled, setColorEnabled] = useState(true);
+
+  useEffect(() => {
+    storage
+      .get<boolean>('healthscan-color-disabled')
+      .then((disabled) => setColorEnabled(!disabled));
+  }, []);
+
+  const toggleColorEnabled = () => {
+    const next = !colorEnabled;
+    setColorEnabled(next);
+    storage.set('healthscan-color-disabled', !next);
+  };
 
   const bodyscanner = detail_level >= 1;
   const Synthetic = species === 'Synthetic';
@@ -142,7 +168,7 @@ export const HealthScan = (props) => {
           }
           selected={colorEnabled}
           compact
-          onClick={() => setColorEnabled(!colorEnabled)}
+          onClick={toggleColorEnabled}
         />
       }
     >
@@ -205,15 +231,20 @@ export const HealthScan = (props) => {
         <Misc />
         {diseases ? <Diseases /> : null}
         {advice && !ui_mode ? <MedicalAdvice /> : null}
-        {damaged_organs?.length && bodyscanner ? <ScannerOrgans /> : null}
+        {damaged_organs_length(data) && bodyscanner ? <ScannerOrgans /> : null}
       </Window.Content>
     </Window>
   );
 };
 
-const Patient = (props) => {
+// damaged_organs is only present in the payload for human targets; guard the
+// length check the same way the original `damaged_organs?.length` did.
+const damaged_organs_length = (data: Data) => data.damaged_organs?.length;
+
+const Patient = () => {
   const { act, data } = useBackend<Data>();
   const {
+    patient,
     dead,
     health,
     total_brute,
@@ -222,16 +253,20 @@ const Patient = (props) => {
     oxy,
     clone,
     ui_mode,
+
     ssd,
-    hugged,
-    detail_level,
+
+    blood_type,
+
     permadead,
     heart_broken,
     species,
     holocard,
+    hugged,
+    detail_level,
   } = data;
 
-  let holocard_message;
+  let holocard_message: string;
   if (holocard === 'red') {
     holocard_message = 'Patient needs life-saving treatment.';
   } else if (holocard === 'orange') {
@@ -412,7 +447,7 @@ const Patient = (props) => {
           ) : null}
           <LabeledList.Item label="Damage">
             <Box inline>
-              <ProgressBar value={0}>
+              <ProgressBar>
                 Brute:{' '}
                 <Box inline bold color={'red'}>
                   {total_brute}
@@ -421,7 +456,7 @@ const Patient = (props) => {
             </Box>
             <Box inline width={'5px'} />
             <Box inline>
-              <ProgressBar value={0}>
+              <ProgressBar>
                 Burn:{' '}
                 <Box inline bold color={'#ffb833'}>
                   {total_burn}
@@ -430,7 +465,7 @@ const Patient = (props) => {
             </Box>
             <Box inline width={'5px'} />
             <Box inline>
-              <ProgressBar value={0}>
+              <ProgressBar>
                 Toxin:{' '}
                 <Box inline bold color={'green'}>
                   {toxin}
@@ -439,7 +474,7 @@ const Patient = (props) => {
             </Box>
             <Box inline width={'5px'} />
             <Box inline>
-              <ProgressBar value={0}>
+              <ProgressBar>
                 Oxygen:{' '}
                 <Box inline bold color={'blue'}>
                   {oxy}
@@ -449,9 +484,9 @@ const Patient = (props) => {
             <Box inline width={'5px'} />
             {!!clone && (
               <Box inline>
-                <ProgressBar value={0}>
+                <ProgressBar>
                   Clone:{' '}
-                  <Box inline bold color={'teal'}>
+                  <Box inline color={'teal'}>
                     {clone}
                   </Box>
                 </ProgressBar>
@@ -481,7 +516,7 @@ const Patient = (props) => {
   );
 };
 
-const Misc = (props) => {
+const Misc = () => {
   const { data } = useBackend<Data>();
   const {
     blood_type,
@@ -489,14 +524,14 @@ const Misc = (props) => {
     has_blood,
     body_temperature,
     pulse,
-    implants = 0,
+    implants,
     core_fracture,
     lung_ruptured,
     hugged,
     detail_level,
     ui_mode,
   } = data;
-  const bloodpct = blood_amount / 560;
+  const bloodpct = (blood_amount ?? 0) / 560;
   const healthanalyser = detail_level < 1;
   const bodyscanner = detail_level >= 1;
   return (
@@ -509,7 +544,7 @@ const Misc = (props) => {
                 bloodpct > 0.9 ? 'green' : bloodpct > 0.7 ? 'orange' : 'red'
               }
             >
-              {Math.round(blood_amount / 5.6)}%, {blood_amount}cl
+              {Math.round((blood_amount ?? 0) / 5.6)}%, {blood_amount}cl
             </Box>
           </LabeledList.Item>
         ) : null}
@@ -531,8 +566,8 @@ const Misc = (props) => {
       ) : null}
       {(implants || hugged) && detail_level === 1 ? (
         <NoticeBox danger>
-          {implants + (hugged ? 1 : 0)} unknown bod
-          {implants + (hugged ? 1 : 0) > 1 ? 'ies' : 'y'} detected!
+          {(implants || 0) + (hugged ? 1 : 0)} unknown bod
+          {(implants || 0) + (hugged ? 1 : 0) > 1 ? 'ies' : 'y'} detected!
         </NoticeBox>
       ) : null}
       {lung_ruptured && bodyscanner ? (
@@ -548,13 +583,13 @@ const Misc = (props) => {
   );
 };
 
-const Diseases = (props) => {
+const Diseases = () => {
   const { data } = useBackend<Data>();
   const { diseases } = data;
   return (
     <Section title="Diseases">
       <LabeledList>
-        {diseases?.map((disease) => (
+        {(diseases || []).map((disease) => (
           <LabeledList.Item
             key={disease.name}
             label={disease.name[0].toUpperCase() + disease.name.slice(1)}
@@ -583,14 +618,14 @@ const Diseases = (props) => {
   );
 };
 
-const MedicalAdvice = (props) => {
+const MedicalAdvice = () => {
   const { data } = useBackend<Data>();
   const { advice } = data;
   return (
     <Section title="Medication Advice">
       <Stack vertical>
-        {advice?.map((advice) => (
-          <Stack.Item key={advice.advice}>
+        {(advice || []).map((advice, i) => (
+          <Stack.Item key={i}>
             <Box inline>
               <Icon name={advice.icon} ml={0.2} color={advice.color} />
               <Box inline width={'5px'} />
@@ -603,13 +638,13 @@ const MedicalAdvice = (props) => {
   );
 };
 
-const ScannerChems = (props) => {
+const ScannerChems = () => {
   const { data } = useBackend<Data>();
   const { has_unknown_chemicals, chemicals_lists, ui_mode } = data;
   const chemicals = Object.values(chemicals_lists);
 
   return (
-    <Section title={ui_mode ? null : 'Chemical Contents'}>
+    <Section title={ui_mode ? undefined : 'Chemical Contents'}>
       {has_unknown_chemicals ? (
         <NoticeBox warning color="grey">
           Unknown reagents detected.
@@ -642,13 +677,10 @@ const ScannerChems = (props) => {
   );
 };
 
-const ScannerLimbs = (props) => {
+const ScannerLimbs = () => {
   const { data } = useBackend<Data>();
-  const { limb_data_lists = {}, detail_level, ui_mode } = data;
-  const limb_data = Object.values(limb_data_lists) as (LimbData & {
-    unbandaged: boolean;
-    unsalved: boolean;
-  })[];
+  const { limb_data_lists, detail_level, ui_mode } = data;
+  const limb_data = Object.values(limb_data_lists || {});
   const bodyscanner = detail_level >= 1;
 
   let index = 0;
@@ -660,7 +692,7 @@ const ScannerLimbs = (props) => {
   });
 
   return (
-    <Section title={ui_mode ? null : 'Limbs Damaged'}>
+    <Section title={ui_mode ? undefined : 'Limbs Damaged'}>
       <Stack vertical fill>
         {ui_mode ? null : (
           <Flex width="100%" height="20px">
@@ -688,7 +720,7 @@ const ScannerLimbs = (props) => {
               {limb.name[0].toUpperCase() + limb.name.slice(1)}
             </Flex.Item>
             {limb.missing ? (
-              <Flex.Item color={'red'} bold={1}>
+              <Flex.Item color={'red'} bold>
                 MISSING
               </Flex.Item>
             ) : (
@@ -755,7 +787,6 @@ const ScannerLimbs = (props) => {
                   ) : null}
                   {limb.open_zone_incision ? (
                     <Box inline color={'red'} bold>
-                      [Open Surgical Incision In {limb.open_zone_incision}]
                       {ui_mode
                         ? `[OSI:${limb.open_zone_incision}]`
                         : `[Open Surgical Incision In ${limb.open_zone_incision}]`}
@@ -771,14 +802,14 @@ const ScannerLimbs = (props) => {
   );
 };
 
-const ScannerOrgans = (props) => {
+const ScannerOrgans = () => {
   const { data } = useBackend<Data>();
-  const { damaged_organs = [], ui_mode } = data;
+  const { damaged_organs, ui_mode } = data;
 
   return (
-    <Section title={ui_mode ? null : 'Organ(s) Damaged'}>
+    <Section title={ui_mode ? undefined : 'Organ(s) Damaged'}>
       <LabeledList>
-        {damaged_organs.map((organ) => (
+        {(damaged_organs || []).map((organ) => (
           <LabeledList.Item
             key={organ.name}
             label={organ.name[0].toUpperCase() + organ.name.slice(1)}

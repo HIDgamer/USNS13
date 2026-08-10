@@ -24,6 +24,17 @@ type Data = {
   name: string;
 };
 
+type Data = {
+  worldtime: number;
+  next_teleport_time: number;
+  cooldown_length: number;
+  teleporting: boolean;
+  locations: Record<string, unknown>;
+  source: string | null;
+  destination: string | null;
+  name: string;
+};
+
 export const TeleporterConsole = () => {
   const { act, data } = useBackend<Data>();
 

@@ -1,34 +1,45 @@
-import { useState } from 'react';
-import { useBackend } from 'tgui/backend';
+import { ReactNode, useState } from 'react';
+
+import { useBackend } from '../backend';
 import {
   Box,
   Button,
   Collapsible,
-  Flex,
   Icon,
   Input,
   Section,
   Stack,
-} from 'tgui/components';
-import { Window } from 'tgui/layouts';
+} from '../components';
+import { Window } from '../layouts';
 
 type PlayerPayload = {
-  text: string;
-  ckey_color: string;
+  readonly text: string;
+  readonly ckey_color?: string;
+  readonly color?: string;
 };
 
-type FactionPayload = { content: string; color: string; text: string };
+type Entry<T> = Record<string, T[]>;
+
+type FactionInfo = {
+  readonly content: string;
+  readonly color: string;
+  readonly text: string;
+};
 
 type Data = {
-  base_data: {
-    total_players: Record<string, { text: string; ckey_color: String }>;
+  base_data?: {
+    total_players: Entry<PlayerPayload>[];
   };
-  player_additional: { total_players: PlayerPayload };
-  player_stealthed_additional: { total_players: PlayerPayload };
-  factions_additional: FactionPayload[];
+  player_additional?: {
+    total_players: Entry<PlayerPayload>[];
+  };
+  player_stealthed_additional?: {
+    total_players: Entry<PlayerPayload>[];
+  };
+  factions_additional?: FactionInfo[];
 };
 
-export const Who = (props, context) => {
+export const Who = () => {
   const { act, data } = useBackend<Data>();
   const {
     base_data,
@@ -51,7 +62,7 @@ export const Who = (props, context) => {
   const filteredTotalPlayers = searchPlayers();
 
   return (
-    <Window width={800} height={600}>
+    <Window resizable width={800} height={600}>
       <Window.Content scrollable>
         <Stack fill vertical>
           <Stack.Item>
@@ -64,7 +75,7 @@ export const Who = (props, context) => {
                   <Input
                     autoFocus
                     fluid
-                    onEnter={(e, value) => {
+                    onEnter={() => {
                       const clientObj = searchPlayers()?.[0];
                       if (!clientObj) return;
                       act('get_player_panel', {
@@ -95,7 +106,7 @@ export const Who = (props, context) => {
             {factions_additional && (
               <Section>
                 <WhoCollapsible title="Information" color="olive">
-                  <Flex direction="column">
+                  <Box>
                     {factions_additional.map((x, index) => (
                       <GetAddInfo
                         key={index}
@@ -104,7 +115,7 @@ export const Who = (props, context) => {
                         text={x.text}
                       />
                     ))}
-                  </Flex>
+                  </Box>
                 </WhoCollapsible>
               </Section>
             )}
@@ -115,7 +126,13 @@ export const Who = (props, context) => {
   );
 };
 
-const WhoCollapsible = (props, context) => {
+type WhoCollapsibleProps = {
+  readonly title: string;
+  readonly color?: string;
+  readonly children: ReactNode;
+};
+
+const WhoCollapsible = (props: WhoCollapsibleProps) => {
   const { title, color, children } = props;
   return (
     <Collapsible title={title} color={color} open>
@@ -124,7 +141,7 @@ const WhoCollapsible = (props, context) => {
   );
 };
 
-const GetAddInfo = (props, context) => {
+const GetAddInfo = (props: FactionInfo) => {
   const { content, color, text } = props;
 
   return (
@@ -144,7 +161,9 @@ const GetAddInfo = (props, context) => {
   );
 };
 
-const FilterPlayers = (props, context) => {
+const FilterPlayers = (props: {
+  players_to_filter: Entry<PlayerPayload>[];
+}) => {
   const { players_to_filter } = props;
 
   return players_to_filter.map((clientObj) => {
@@ -153,7 +172,7 @@ const FilterPlayers = (props, context) => {
   });
 };
 
-const GetPlayerInfo = (props, context) => {
+const GetPlayerInfo = (props: PlayerPayload & { readonly ckey: string }) => {
   const { act } = useBackend<Data>();
   const { ckey, text, color, ckey_color } = props;
 
@@ -175,7 +194,7 @@ const GetPlayerInfo = (props, context) => {
   );
 };
 
-const isMatch = (playerObj, searchQuery) => {
+const isMatch = (playerObj: Entry<PlayerPayload>, searchQuery: string) => {
   if (!searchQuery) {
     return true;
   }
@@ -185,8 +204,10 @@ const isMatch = (playerObj, searchQuery) => {
 };
 
 // Krill me please
-const mergeArrays = (...arrays) => {
-  const mergedObject = {};
+const mergeArrays = (
+  ...arrays: (Entry<PlayerPayload>[] | undefined)[]
+): Entry<PlayerPayload>[] => {
+  const mergedObject: Record<string, PlayerPayload[]> = {};
 
   arrays.forEach((array) => {
     if (!array) return;

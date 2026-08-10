@@ -15,7 +15,77 @@ import {
 } from 'tgui/components';
 import { Window } from 'tgui/layouts';
 
-const PAGES = [
+type PpAction = {
+  name: string;
+  action_tag: string;
+  permissions_required: number;
+};
+
+type Transformable = {
+  name: string;
+  key: string;
+  color: string;
+  icon?: string;
+};
+
+type MuteBit = {
+  name: string;
+  bitflag: number;
+};
+
+type SpanOption = {
+  name: string;
+  span: string;
+};
+
+type Data = {
+  mob_name: string;
+  mob_type: string;
+  client_key?: string;
+  client_ckey?: string;
+  client_rank?: string;
+  client_age?: string;
+  first_join?: string;
+  client_muted?: number;
+  client_name_banned_status?: boolean;
+  current_permissions?: number;
+
+  mob_sleeping: number;
+  mob_frozen: boolean;
+  mob_speed: number;
+  mob_status_flags: number;
+  mob_feels_pain?: boolean;
+
+  is_human: boolean;
+  is_xeno: boolean;
+
+  glob_pp_actions: Record<string, PpAction>;
+  glob_status_flags: Record<string, number>;
+  glob_limbs: Record<string, string>;
+  glob_hives: Record<string, number>;
+  glob_mute_bits: MuteBit[];
+  glob_span: SpanOption[];
+  glob_pp_transformables: Record<string, Transformable[]>;
+};
+
+const hasPermission = (data: Data, action: string): boolean => {
+  if (!(action in data.glob_pp_actions)) return false;
+
+  const action_data = data.glob_pp_actions[action];
+  return !!(
+    action_data.permissions_required & (data.current_permissions ?? 0)
+  );
+};
+
+type Page = {
+  title: string;
+  component: () => (props: any) => JSX.Element;
+  color: string;
+  icon: string;
+  canAccess?: (data: Data) => boolean;
+};
+
+const PAGES: Page[] = [
   {
     title: 'General',
     component: () => GeneralActions,
@@ -155,7 +225,7 @@ export const PlayerPanel = (props) => {
       title={`${mob_name} Player Panel`}
       width={620}
       height={540}
-      theme="crtgreen"
+      theme="admin"
     >
       <Window.Content scrollable>
         <Section title="Identity" mb={1}>
@@ -185,7 +255,7 @@ export const PlayerPanel = (props) => {
                 <Button
                   ml={0.5}
                   icon="clock"
-                  disabled={!hasPermission(data, 'show_notes')}
+                  disabled={!hasPermission(data, 'access_playtimes')}
                   onClick={() => act('access_playtimes')}
                   tooltip="View Playtimes"
                   tooltipPosition="bottom-end"
@@ -621,7 +691,7 @@ const PunishmentActions = (props) => {
           >
             EORG Ban
           </Button.Confirm>
-          <Button
+          <Button.Confirm
             width="100%"
             icon="ban"
             color="red"
@@ -629,7 +699,7 @@ const PunishmentActions = (props) => {
             onClick={() => act('mob_jobban')}
           >
             Job-ban
-          </Button>
+          </Button.Confirm>
         </Stack>
       </Section>
 
@@ -687,7 +757,7 @@ const PunishmentActions = (props) => {
               <Button.Checkbox
                 key={i}
                 width="100%"
-                checked={isMuted}
+                checked={!!isMuted}
                 color={isMuted ? 'good' : 'bad'}
                 disabled={!hasPermission(data, 'mob_mute')}
                 onClick={() =>
@@ -1008,7 +1078,7 @@ const PhysicalActions = (props) => {
             key={i}
             disabled={!hasPermission(data, 'set_status_flags')}
             color={mob_status_flags & glob_status_flags[val] ? 'good' : 'bad'}
-            checked={mob_status_flags & glob_status_flags[val]}
+            checked={!!(mob_status_flags & glob_status_flags[val])}
             onClick={() =>
               act('set_status_flags', {
                 status_flags:
@@ -1024,7 +1094,7 @@ const PhysicalActions = (props) => {
         <Button.Checkbox
           disabled={!hasPermission(data, 'set_pain')}
           color={mob_feels_pain ? 'good' : 'bad'}
-          checked={mob_feels_pain}
+          checked={!!mob_feels_pain}
           onClick={() => act('set_pain', { feels_pain: !mob_feels_pain })}
         >
           Feels Pain
@@ -1039,7 +1109,7 @@ const PhysicalActions = (props) => {
                 <Button.Checkbox
                   key={index}
                   textAlign="center"
-                  checked={delimbOption & limb_flags[index]}
+                  checked={!!(delimbOption & limb_flags[index])}
                   onClick={() =>
                     setDelimbOption(
                       delimbOption & limb_flags[index]

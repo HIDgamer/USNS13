@@ -1,9 +1,10 @@
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import { Button, Flex, LabeledList, Section } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
 
-type DataEntry = {
+import { useBackend } from '../backend';
+import { Button, Flex, LabeledList, Section } from '../components';
+import { Window } from '../layouts';
+
+type ProduceItem = {
   name: string;
   desc: string;
   cost: number;
@@ -11,18 +12,25 @@ type DataEntry = {
   is_ammo: BooleanLike;
 };
 
+type QueueItem = {
+  name: string;
+  cost: number;
+  index: number;
+};
+
 type Data = {
-  Equipment: DataEntry[];
-  Ammo: DataEntry[];
   points: number;
   omnisentrygun_price: number;
-  BuildQueue: { name: string; cost: number; index: number }[];
+  Equipment: ProduceItem[];
+  Ammo: ProduceItem[];
+  BuildQueue: QueueItem[];
 };
 
 export const PartFabricator = (props) => {
+  const { act, data } = useBackend<Data>();
   return (
     <Window width={900} height={850}>
-      <Window.Content>
+      <Window.Content scrollable>
         <GeneralPanel />
       </Window.Content>
     </Window>
@@ -75,6 +83,10 @@ const GeneralPanel = (props) => {
                     className="underline"
                     buttons={
                       Ammo.name === 'A/C-49-P Air Deployable Sentry' ? (
+                        // NOTE: original .jsx passed a `cost={omnisentrygun_price}`
+                        // prop here, but Button has no such prop -- it isn't a
+                        // valid style/DOM prop either, so it was always a no-op.
+                        // Dropped since it doesn't type-check; see report.
                         <Button
                           icon="wrench"
                           tooltip={Ammo.desc}

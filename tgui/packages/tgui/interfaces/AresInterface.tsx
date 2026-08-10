@@ -2,14 +2,63 @@
 // Please ensure when updating this menu, changes are reflected in AresAdmin.js
 // -------------------------------------------------------------------- //
 
-import type { BooleanLike } from 'common/react';
-import { useBackend } from 'tgui/backend';
-import { Box, Button, Flex, Section, Stack } from 'tgui/components';
-import { Window } from 'tgui/layouts';
+import { BooleanLike } from 'common/react';
 
-import { DataCoreData } from './common/commonTypes';
+import { useBackend } from '../backend';
+import { Box, Button, Flex, Section, Stack } from '../components';
+import { Window } from '../layouts';
 
-type Data = DataCoreData & {
+type AresLogRecord = {
+  time: string;
+  title: string;
+  details: string;
+  ref: string;
+};
+
+type AresUserLogRecord = AresLogRecord & {
+  user: string;
+};
+
+type TechLogRecord = {
+  time: string;
+  user: string;
+  details: string;
+  tier_changer: BooleanLike;
+  ref: string;
+};
+
+type DeletionLogRecord = {
+  time: string;
+  title: string;
+  details: string;
+  user: string;
+  ref: string;
+};
+
+type DeletedDiscussionRecord = {
+  time: string;
+  title: string;
+  ref: string;
+};
+
+// The backend (get_interface_data() in ARES_interface_data.dm) sends
+// "user", "ref", "conversation" and "title" for each entry here. It never
+// tracks a start time for ongoing 1:1 conversations, so there is no "time"
+// field -- ActiveTalks below shows the user instead of a timestamp.
+type DiscussionRecord = {
+  user: string;
+  ref: string;
+  conversation: string[];
+  title: string;
+};
+
+type SecurityVent = {
+  vent_tag: string;
+  ref: string;
+  available: BooleanLike;
+};
+
+type Data = {
   local_current_menu: string;
   local_last_page: string;
   local_logged_in: string;
@@ -19,10 +68,32 @@ type Data = DataCoreData & {
   local_spying_conversation: string[];
   local_printer_cooldown: BooleanLike;
   local_active_convo: string[];
-  local_active_ref: string;
+  local_active_ref: string | null;
+  alert_level: number;
+  evac_status: number;
+  worldtime: number;
+  ares_access_log: string[];
+  apollo_log: string[];
+  distresstime: number;
+  distresstimelock: number;
+  quarterstime: number;
+  mission_failed: BooleanLike;
+  nuketimelock: number;
+  nuke_available: BooleanLike;
+  records_announcement: AresLogRecord[];
+  records_bioscan: AresLogRecord[];
+  records_bombardment: AresUserLogRecord[];
+  records_security: AresLogRecord[];
+  records_flight: AresUserLogRecord[];
+  records_deletion: DeletionLogRecord[];
+  records_requisition: AresUserLogRecord[];
+  records_tech: TechLogRecord[];
+  records_discussions: DiscussionRecord[];
+  deleted_discussions: DeletedDiscussionRecord[];
+  security_vents: SecurityVent[];
 };
 
-const PAGES = {
+const PAGES: Record<string, () => React.ComponentType> = {
   login: () => Login,
   main: () => MainMenu,
   announcements: () => AnnouncementLogs,
@@ -49,7 +120,7 @@ export const AresInterface = (props) => {
   const PageComponent = PAGES[local_current_menu]();
 
   let themecolor = 'crtblue';
-  if (local_sudo) {
+  if (local_sudo >= 1) {
     themecolor = 'crtred';
   } else if (local_current_menu === 'emergency') {
     themecolor = 'crtred';
@@ -66,7 +137,7 @@ export const AresInterface = (props) => {
   );
 };
 
-const Login = (props) => {
+const Login = () => {
   const { act } = useBackend<Data>();
 
   return (
@@ -102,7 +173,7 @@ const Login = (props) => {
   );
 };
 
-const MainMenu = (props) => {
+const MainMenu = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -153,7 +224,7 @@ const MainMenu = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Navigation Menu</h1>
+        <h1 align="center">Navigation Menu</h1>
 
         <Stack>
           <Stack.Item grow>
@@ -383,21 +454,7 @@ const MainMenu = (props) => {
             <Stack.Item grow>
               <h3>Maintenance Access</h3>
             </Stack.Item>
-            {local_sudo ? (
-              <Stack.Item>
-                <Button
-                  tooltip="Logout of Sudo mode."
-                  icon="user-secret"
-                  ml="auto"
-                  px="2rem"
-                  width="25vw"
-                  bold
-                  onClick={() => act('sudo_logout')}
-                >
-                  Sudo Logout
-                </Button>
-              </Stack.Item>
-            ) : (
+            {local_sudo === 0 && (
               <Stack.Item>
                 <Button
                   tooltip="Remote Login."
@@ -412,12 +469,27 @@ const MainMenu = (props) => {
                 </Button>
               </Stack.Item>
             )}
+            {local_sudo >= 1 && (
+              <Stack.Item>
+                <Button
+                  tooltip="Logout of Sudo mode."
+                  icon="user-secret"
+                  ml="auto"
+                  px="2rem"
+                  width="25vw"
+                  bold
+                  onClick={() => act('sudo_logout')}
+                >
+                  Sudo Logout
+                </Button>
+              </Stack.Item>
+            )}
           </Stack>
         )}
       </Section>
       {(local_access_level === 3 || local_access_level >= 6) && (
         <Section>
-          <h1 style={{ textAlign: 'center' }}>Core Security Protocols</h1>
+          <h1 align="center">Core Security Protocols</h1>
           <Stack>
             <Stack.Item grow>
               <Button
@@ -456,7 +528,7 @@ const MainMenu = (props) => {
   );
 };
 
-const AnnouncementLogs = (props) => {
+const AnnouncementLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -506,7 +578,7 @@ const AnnouncementLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Announcement Logs</h1>
+        <h1 align="center">Announcement Logs</h1>
 
         {!!records_announcement.length && (
           <Flex
@@ -554,7 +626,7 @@ const AnnouncementLogs = (props) => {
   );
 };
 
-const BioscanLogs = (props) => {
+const BioscanLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -604,7 +676,7 @@ const BioscanLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Bioscan Logs</h1>
+        <h1 align="center">Bioscan Logs</h1>
 
         {!!records_bioscan.length && (
           <Flex
@@ -652,7 +724,7 @@ const BioscanLogs = (props) => {
   );
 };
 
-const BombardmentLogs = (props) => {
+const BombardmentLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -702,7 +774,7 @@ const BombardmentLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Orbital Bombardment Logs</h1>
+        <h1 align="center">Orbital Bombardment Logs</h1>
 
         {!!records_bombardment.length && (
           <Flex
@@ -754,7 +826,7 @@ const BombardmentLogs = (props) => {
   );
 };
 
-const ApolloLog = (props) => {
+const ApolloLog = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -803,7 +875,7 @@ const ApolloLog = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Apollo Log</h1>
+        <h1 align="center">Apollo Log</h1>
 
         {apollo_log.map((apollo_message, i) => {
           return (
@@ -817,7 +889,7 @@ const ApolloLog = (props) => {
   );
 };
 
-const AccessLogs = (props) => {
+const AccessLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -866,7 +938,7 @@ const AccessLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Access Log</h1>
+        <h1 align="center">Access Log</h1>
 
         {ares_access_log.map((login, i) => {
           return (
@@ -880,7 +952,7 @@ const AccessLogs = (props) => {
   );
 };
 
-const DeletionLogs = (props) => {
+const DeletionLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -929,7 +1001,7 @@ const DeletionLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Deletion Log</h1>
+        <h1 align="center">Deletion Log</h1>
 
         {!!records_deletion.length && (
           <Flex
@@ -973,7 +1045,7 @@ const DeletionLogs = (props) => {
   );
 };
 
-const ARESTalk = (props) => {
+const ARESTalk = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1023,7 +1095,7 @@ const ARESTalk = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>ARES Communication</h1>
+        <h1 align="center">ARES Communication</h1>
       </Section>
 
       <Section align="center">
@@ -1079,7 +1151,7 @@ const ARESTalk = (props) => {
   );
 };
 
-const DeletedTalks = (props) => {
+const DeletedTalks = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1128,7 +1200,7 @@ const DeletedTalks = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Deletion 1:1 Log</h1>
+        <h1 align="center">Deletion 1:1 Log</h1>
         {!!deleted_discussions.length && (
           <Flex
             className="candystripe"
@@ -1171,7 +1243,7 @@ const DeletedTalks = (props) => {
   );
 };
 
-const ActiveTalks = (props) => {
+const ActiveTalks = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1220,7 +1292,7 @@ const ActiveTalks = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Active 1:1 Records</h1>
+        <h1 align="center">Active 1:1 Records</h1>
         {!!records_discussions.length && (
           <Flex
             className="candystripe"
@@ -1228,8 +1300,8 @@ const ActiveTalks = (props) => {
             align="center"
             fontSize="1.25rem"
           >
-            <Flex.Item bold width="6rem" shrink="0" mr="1rem">
-              Start Time
+            <Flex.Item bold width="10rem" shrink="0" mr="1rem">
+              User
             </Flex.Item>
             <Flex.Item grow bold>
               Title
@@ -1242,8 +1314,8 @@ const ActiveTalks = (props) => {
         {records_discussions.map((record, i) => {
           return (
             <Flex key={i} className="candystripe" p=".75rem" align="center">
-              <Flex.Item bold width="6rem" shrink="0" mr="1rem">
-                {record.time}
+              <Flex.Item bold width="10rem" shrink="0" mr="1rem">
+                {record.user}
               </Flex.Item>
               <Flex.Item grow italic>
                 {record.title}
@@ -1263,7 +1335,7 @@ const ActiveTalks = (props) => {
   );
 };
 
-const ReadingTalks = (props) => {
+const ReadingTalks = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1312,7 +1384,7 @@ const ReadingTalks = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Accessed 1:1 Conversation</h1>
+        <h1 align="center">Accessed 1:1 Conversation</h1>
         {local_spying_conversation.map((message, i) => {
           return (
             <Flex key={i} className="candystripe" p=".75rem" align="center">
@@ -1325,7 +1397,7 @@ const ReadingTalks = (props) => {
   );
 };
 
-const Requisitions = (props) => {
+const Requisitions = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1375,8 +1447,8 @@ const Requisitions = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>ASRS Audit Log</h1>
-        <h4 style={{ alignContent: 'center' }}>
+        <h1 align="center">ASRS Audit Log</h1>
+        <h4 align="center">
           <Button
             icon="print"
             px="2rem"
@@ -1433,7 +1505,7 @@ const Requisitions = (props) => {
   );
 };
 
-const FlightLogs = (props) => {
+const FlightLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1483,7 +1555,7 @@ const FlightLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Flight Control Logs</h1>
+        <h1 align="center">Flight Control Logs</h1>
         {!!records_flight.length && (
           <Flex
             className="candystripe"
@@ -1530,7 +1602,7 @@ const FlightLogs = (props) => {
   );
 };
 
-const Security = (props) => {
+const Security = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1580,7 +1652,7 @@ const Security = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Security Updates</h1>
+        <h1 align="center">Security Updates</h1>
         {!!records_security.length && (
           <Flex
             className="candystripe"
@@ -1627,7 +1699,7 @@ const Security = (props) => {
   );
 };
 
-const Emergency = (props) => {
+const Emergency = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1679,7 +1751,7 @@ const Emergency = (props) => {
 
   const minimumNukeTime = worldtime > nuketimelock;
   const canNuke =
-    nuke_available && !mission_failed && evac_status === 0 && minimumNukeTime;
+    !!nuke_available && !mission_failed && evac_status === 0 && minimumNukeTime;
   let nuke_reason =
     'Request a nuclear device to be authorized by USCM High Command.';
   if (!nuke_available) {
@@ -1732,7 +1804,7 @@ const Emergency = (props) => {
         </Flex>
       </Section>
 
-      <h1 style={{ textAlign: 'center' }}>Emergency Protocols</h1>
+      <h1 align="center">Emergency Protocols</h1>
       <Flex align="center" justify="center" height="50%" direction="column">
         <Button.Confirm
           tooltip={quarters_reason}
@@ -1799,7 +1871,7 @@ const Emergency = (props) => {
   );
 };
 
-const TechLogs = (props) => {
+const TechLogs = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1849,7 +1921,7 @@ const TechLogs = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Tech Control Logs</h1>
+        <h1 align="center">Tech Control Logs</h1>
         {!!records_tech.length && (
           <Flex
             className="candystripe"
@@ -1915,7 +1987,7 @@ const TechLogs = (props) => {
   );
 };
 
-const CoreSec = (props) => {
+const CoreSec = () => {
   const { data, act } = useBackend<Data>();
   const {
     local_logged_in,
@@ -1965,10 +2037,10 @@ const CoreSec = (props) => {
       </Section>
 
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Core Security Protocols</h1>
+        <h1 align="center">Core Security Protocols</h1>
       </Section>
       <Section>
-        <h1 style={{ textAlign: 'center' }}>Nerve Gas Release</h1>
+        <h1 align="center">Nerve Gas Release</h1>
         {security_vents.map((vent, i) => {
           return (
             <Button.Confirm

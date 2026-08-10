@@ -10,6 +10,19 @@ type Data = {
   wire_descs: Record<number, string>;
 };
 
+type Wire = {
+  number: number;
+  cut: boolean;
+  attached?: boolean;
+  wire?: string;
+};
+
+type Data = {
+  proper_name: string;
+  wires: Wire[];
+  wire_descs: string[];
+};
+
 export const Wires = (props) => {
   const { act, data } = useBackend<Data>();
   const { proper_name } = data;
@@ -56,16 +69,18 @@ export const Wires = (props) => {
                     >
                       Pulse
                     </Button>
-                    <Button
-                      icon="paperclip"
-                      onClick={() =>
-                        act('attach', {
-                          wire: wire.number,
-                        })
-                      }
-                    >
-                      {wire.attached ? 'Detach' : 'Attach'}
-                    </Button>
+                    {wire.attached !== undefined && (
+                      <Button
+                        icon="paperclip"
+                        onClick={() =>
+                          act('attach', {
+                            wire: wire.number,
+                          })
+                        }
+                      >
+                        {wire.attached ? 'Detach' : 'Attach'}
+                      </Button>
+                    )}
                   </>
                 }
               />

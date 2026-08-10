@@ -1,20 +1,36 @@
-import { Component, createRef } from 'react';
-import { Box } from 'tgui/components';
+import { Component, createRef, RefObject } from 'react';
 
-type DrawMapRrops = {
-  readonly svgData: (string | number | CanvasGradient | CanvasPattern)[];
+import { Box } from '../components';
+
+type Props = {
+  readonly svgData?: (number | string)[] | null;
   readonly flatImage: string;
   readonly backupImage: string;
+  readonly showLoading?: boolean;
 };
 
-export class DrawnMap extends Component<DrawMapRrops> {
-  backupImgSrc: string;
-  containerRef: React.RefObject<HTMLDivElement>;
+type State = {
+  mapLoad: boolean;
+  loadingBackup: boolean;
+};
+
+type SvgLine = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  stroke: string;
+};
+
+export class DrawnMap extends Component<Props, State> {
+  containerRef: RefObject<HTMLDivElement>;
   flatImgSrc: string;
+  backupImgSrc: string;
   img: HTMLImageElement | null;
-  svg: (string | number | CanvasGradient | CanvasPattern)[];
-  state: { mapLoad: boolean; loadingBackup: boolean };
-  constructor(props) {
+  svg: (number | string)[] | null | undefined;
+  showLoading: boolean;
+
+  constructor(props: Props) {
     super(props);
     this.containerRef = createRef();
     this.flatImgSrc = this.props.flatImage;
@@ -25,6 +41,7 @@ export class DrawnMap extends Component<DrawMapRrops> {
     };
     this.img = null;
     this.svg = this.props.svgData;
+    this.showLoading = this.props.showLoading ?? true;
   }
 
   componentDidMount() {
@@ -37,8 +54,8 @@ export class DrawnMap extends Component<DrawMapRrops> {
     this.img.onerror = () => {
       if (this.img) {
         this.img.src = this.backupImgSrc;
-        this.setState({ mapLoad: false });
       }
+      this.setState({ mapLoad: false });
     };
 
     const backupImg = new Image();
@@ -48,21 +65,17 @@ export class DrawnMap extends Component<DrawMapRrops> {
     };
   }
 
-  parseSvgData(svgDataArray) {
+  parseSvgData(
+    svgDataArray?: (number | string)[] | null,
+  ): SvgLine[] | null {
     if (!svgDataArray) return null;
-    let lines: {
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      stroke: string;
-    }[] = [];
+    let lines: SvgLine[] = [];
     for (let i = 0; i < svgDataArray.length; i += 5) {
-      const x1 = svgDataArray[i];
-      const y1 = svgDataArray[i + 1];
-      const x2 = svgDataArray[i + 2];
-      const y2 = svgDataArray[i + 3];
-      const stroke = svgDataArray[i + 4];
+      const x1 = svgDataArray[i] as number;
+      const y1 = svgDataArray[i + 1] as number;
+      const x2 = svgDataArray[i + 2] as number;
+      const y2 = svgDataArray[i + 3] as number;
+      const stroke = svgDataArray[i + 4] as string;
       lines.push({ x1, y1, x2, y2, stroke });
     }
     return lines;
@@ -82,11 +95,13 @@ export class DrawnMap extends Component<DrawMapRrops> {
 
     return (
       <div ref={this.containerRef} className="TacticalMapDrawn">
-        {this.state.loadingBackup && !this.state.mapLoad && (
-          <Box my="40%">
-            <h1>Loading map...</h1>
-          </Box>
-        )}
+        {this.state.loadingBackup &&
+          !this.state.mapLoad &&
+          this.showLoading && (
+            <Box my="40%">
+              <h1>Loading map...</h1>
+            </Box>
+          )}
         {this.img && this.state.mapLoad && (
           <img src={this.img.src} width={size.width} height={size.height} />
         )}
