@@ -28,6 +28,7 @@
 #define HUNTER_HUD "26" //Displays various statuses on mobs for Hunters to identify targets
 #define HOLOCARD_HUD "27" //Displays the holocards set by medical personnel
 #define NEW_PLAYER_HUD "29" //Makes it easy to see new players.
+#define XENO_HOSTILE_TAG_SPREAD "30" // dancer prae yellow 'tag'
 
 //data HUD (medhud, sechud) defines
 #define MOB_HUD_SECURITY_BASIC 1
