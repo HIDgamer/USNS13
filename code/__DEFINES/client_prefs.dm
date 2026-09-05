@@ -131,3 +131,14 @@
 
 /// How many slots players have access to, both for loadout slots and character slots
 #define MAX_SAVE_SLOTS 10
+//=================================================
+
+//auto_holotag from /datum/preferences
+//=================================================
+/// Do not tag patients automatically
+#define NEVER_TAG_PATIENTS 0
+/// Only tag patients after scanning them in a bodyscanner (not a handheld scanner)
+#define BODYSCAN_TAG_PATIENTS 1
+/// Auto tag patients with triage tags upon scanning
+#define ALWAYS_TAG_PATIENTS 2
+//=================================================
