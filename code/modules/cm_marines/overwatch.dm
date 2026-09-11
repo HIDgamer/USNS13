@@ -185,8 +185,9 @@ GLOBAL_LIST_EMPTY_TYPED(active_overwatch_consoles, /obj/structure/machinery/comp
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
 		user.client.register_map_obj(tacmap.map_holder.map)
+		// groundside_operations shares the regular OverwatchConsole tgui interface; only the window title differs.
 		if(istype(src, /obj/structure/machinery/computer/overwatch/groundside_operations))
-			ui = new(user, src, "CentralOverwatchConsole", "Groundside Operations Console")
+			ui = new(user, src, "OverwatchConsole", "Groundside Operations Console")
 		else
 			ui = new(user, src, "OverwatchConsole", "Overwatch Console")
 		ui.open()
@@ -1172,6 +1173,10 @@ GLOBAL_LIST_EMPTY_TYPED(active_overwatch_consoles, /obj/structure/machinery/comp
 		return TRUE
 	if(istype(marine.wear_l_ear, /obj/item/device/overwatch_camera) || istype(marine.wear_r_ear, /obj/item/device/overwatch_camera) || istype(marine.wear_r_ear, /obj/item/device/radio/headset/almayer/marine/overwatch_camera) || istype(marine.wear_l_ear, /obj/item/device/radio/headset/almayer/marine/overwatch_camera))
 		return TRUE
+	// Synthetics are robots with their own inherent optical feed - they shouldn't need to be
+	// wearing a helmet or camera gear like an organic marine does to have one.
+	if(issynth(marine))
+		return TRUE
 	return FALSE
 /// returns the overwatch camera the human is wearing
 /obj/item/proc/get_camera()
@@ -1185,6 +1190,10 @@ GLOBAL_LIST_EMPTY_TYPED(active_overwatch_consoles, /obj/structure/machinery/comp
 
 /obj/item/device/radio/headset/almayer/marine/overwatch_camera/get_camera()
 	return camera
+
+/// A synthetic's own inherent overwatch camera - see get_camera_holder() below. Null until first requested, then cached and reused for the rest of their life.
+/mob/living/carbon/human/var/obj/item/device/overwatch_camera/synth_internal_camera
+
 
 ///returns camera holder
 /mob/living/carbon/human/proc/get_camera_holder()
@@ -1204,6 +1213,14 @@ GLOBAL_LIST_EMPTY_TYPED(active_overwatch_consoles, /obj/structure/machinery/comp
 	if(istype(wear_r_ear, /obj/item/device/radio/headset/almayer/marine/overwatch_camera))
 		cam_gear = wear_r_ear
 		return cam_gear
+	// Same reasoning as marine_has_camera() above - lazily create (once, then cache and reuse) an
+	// internal camera nested directly inside the synthetic, so it tracks their position exactly
+	// like a worn one would without them actually needing to wear anything.
+	if(issynth(src))
+		if(!synth_internal_camera)
+			synth_internal_camera = new(src)
+			synth_internal_camera.camera.c_tag = real_name
+		return synth_internal_camera
 
 // Alerts all groundside marines about the incoming OB
 /obj/structure/machinery/computer/overwatch/proc/alert_ob(turf/target)
