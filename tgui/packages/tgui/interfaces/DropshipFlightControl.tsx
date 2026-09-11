@@ -199,6 +199,9 @@ const DestinationSelector = (props: DestinationProps) => {
     <>
       {props.options
         .filter((x) => (props.applyFilter === false ? true : x.available === 1))
+        .sort((a, b) =>
+          a.id === data.primary_lz ? -1 : b.id === data.primary_lz ? 1 : 0,
+        )
         .map((x) => (
           <Stack.Item key={x.id}>
             <Flex align="center">
@@ -216,6 +219,12 @@ const DestinationSelector = (props: DestinationProps) => {
                 <Button
                   disabled={
                     props.availableOnly === false ? false : x.available === 0
+                  }
+                  color={x.id === data.primary_lz ? 'good' : undefined}
+                  tooltip={
+                    x.id === data.primary_lz
+                      ? 'Designated primary landing zone'
+                      : undefined
                   }
                   icon={x.id === data.primary_lz ? 'home' : undefined}
                   iconPosition="right"

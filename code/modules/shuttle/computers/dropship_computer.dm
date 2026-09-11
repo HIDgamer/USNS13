@@ -521,6 +521,11 @@
 			if(dock_reserved)
 				to_chat(user, SPAN_WARNING("\The [dock] is currently in use."))
 				return TRUE
+			var/primary_lz = SSticker.mode?.active_lz?.linked_lz
+			if(primary_lz && (dock.id == DROPSHIP_LZ1 || dock.id == DROPSHIP_LZ2) && dock.id != primary_lz)
+				var/confirm_wrong_lz = tgui_alert(usr, "\The [dock] is NOT the designated primary landing zone. Launch anyway?", "Confirm Landing Zone", list("Yes", "No"))
+				if(confirm_wrong_lz != "Yes")
+					return TRUE
 			SSshuttle.moveShuttle(shuttle.id, dock.id, TRUE)
 			to_chat(user, SPAN_NOTICE("You begin the launch sequence to [dock]."))
 			if(shuttle.faction == FACTION_MARINE)
