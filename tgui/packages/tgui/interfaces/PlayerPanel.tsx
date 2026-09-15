@@ -136,13 +136,6 @@ const PAGES: Page[] = [
   },
 ];
 
-const hasPermission = (data, action) => {
-  if (!(action in data.glob_pp_actions)) return false;
-
-  const action_data = data.glob_pp_actions[action];
-  return !!(action_data.permissions_required & data.current_permissions);
-};
-
 type ClientData = {
   client_key: string;
   client_ckey: string;
